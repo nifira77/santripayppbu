@@ -45,6 +45,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               <p className="font-arabic text-xs text-emerald-800 font-semibold mb-1">
                 بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
               </p>
+              {pesantrenProfile.logoUrl && (
+                <div className="flex justify-center mb-1.5">
+                  <img
+                    src={pesantrenProfile.logoUrl}
+                    alt="Logo"
+                    className="w-10 h-10 object-contain"
+                  />
+                </div>
+              )}
               <h2 className="text-sm font-black uppercase tracking-wider text-slate-900">
                 {pesantrenProfile.name}
               </h2>

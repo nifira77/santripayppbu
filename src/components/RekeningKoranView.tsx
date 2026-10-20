@@ -152,9 +152,19 @@ export const RekeningKoranView: React.FC<RekeningKoranViewProps> = ({
           <div className="border-b-2 border-slate-900 pb-5 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center space-x-4">
-                <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-emerald-400 border border-emerald-500/40 shrink-0">
-                  <Building2 className="w-8 h-8" />
-                </div>
+                {pesantrenProfile.logoUrl ? (
+                  <div className="w-14 h-14 rounded-2xl bg-white p-1 border border-slate-200 shadow-xs flex items-center justify-center shrink-0 overflow-hidden">
+                    <img
+                      src={pesantrenProfile.logoUrl}
+                      alt="Logo Pesantren"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-emerald-400 border border-emerald-500/40 shrink-0">
+                    <Building2 className="w-8 h-8" />
+                  </div>
+                )}
                 <div>
                   <p className="font-arabic text-xs text-emerald-800 font-bold mb-0.5">
                     بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ

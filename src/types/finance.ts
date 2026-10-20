@@ -82,6 +82,7 @@ export interface PesantrenProfile {
   treasuryNIP: string;
   mudir: string;          // Pengasuh / Pimpinan Pondok
   defaultDailyLimit: number; // 10000
+  logoUrl?: string;       // Custom uploaded logo data URL
 }
 
 export interface NeracaData {

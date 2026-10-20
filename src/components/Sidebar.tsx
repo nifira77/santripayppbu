@@ -15,7 +15,8 @@ import {
   RotateCcw,
   X,
   Scale,
-  Landmark
+  Landmark,
+  Eye
 } from 'lucide-react';
 import { PesantrenProfile } from '../types/finance';
 import { formatRupiah } from '../utils/accounting';
@@ -30,6 +31,7 @@ interface SidebarProps {
   onResetData: () => void;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
+  onGoToLanding: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -42,6 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onResetData,
   isOpenMobile,
   onCloseMobile,
+  onGoToLanding,
 }) => {
   // Loket Bendahara submenu keys: 'loket-jajan' (dashboard) and 'setor-titipan'
   const loketBendaharaTabs = ['dashboard', 'loket-jajan', 'setor-titipan'];
@@ -146,9 +149,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 p-0.5 shadow-md flex items-center justify-center shrink-0">
-                <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-emerald-400" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 p-0.5 shadow-md flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center overflow-hidden">
+                  {pesantrenProfile.logoUrl ? (
+                    <img
+                      src={pesantrenProfile.logoUrl}
+                      alt="Logo"
+                      className="w-full h-full object-contain p-0.5"
+                    />
+                  ) : (
+                    <Building2 className="w-5 h-5 text-emerald-400" />
+                  )}
                 </div>
               </div>
               <div className="min-w-0">
@@ -167,6 +178,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Navigation Links */}
           <nav className="p-3 space-y-2 overflow-y-auto max-h-[calc(100vh-220px)]">
+            {/* Direct Link to Landing Page / Portal Wali */}
+            <div className="pb-1">
+              <button
+                onClick={() => {
+                  onGoToLanding();
+                  onCloseMobile();
+                }}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/60 shadow-xs"
+              >
+                <div className="flex items-center space-x-2.5">
+                  <Eye className="w-4 h-4 text-emerald-400" />
+                  <span>Portal Wali & Beranda</span>
+                </div>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-900 text-emerald-200 font-mono">
+                  Read-Only
+                </span>
+              </button>
+            </div>
+
             <p className="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Menu Utama
             </p>
@@ -309,6 +339,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   })}
                 </div>
               )}
+            </div>
+
+            {/* PARENT SECTION 3: PENGATURAN */}
+            <div className="pt-2">
+              <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Pengaturan
+              </p>
+              <button
+                onClick={() => handleNavClick('profil')}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'profil'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/40 font-bold'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center space-x-2.5">
+                  <Building2 className={`w-4 h-4 ${activeTab === 'profil' ? 'text-white' : 'text-emerald-400'}`} />
+                  <span>Profil Pesantren & Logo</span>
+                </div>
+                {pesantrenProfile.logoUrl && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                )}
+              </button>
             </div>
           </nav>
         </div>

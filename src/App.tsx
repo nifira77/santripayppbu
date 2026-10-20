@@ -15,6 +15,21 @@ import {
   getTodayDateString, 
   getCurrentTimeString 
 } from './utils/accounting';
+import {
+  auth,
+  signInWithGoogle,
+  logOut,
+  testConnection,
+  subscribeToSantri,
+  subscribeToTransactions,
+  subscribeToProfile,
+  saveSantriToCloud,
+  updateSantriBalanceInCloud,
+  saveTransactionToCloud,
+  saveProfileToCloud,
+  seedInitialDataToCloud
+} from './firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
 
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
@@ -25,6 +40,8 @@ import { RekeningKoranView } from './components/RekeningKoranView';
 import { LaporanRekapView } from './components/LaporanRekapView';
 import { SantriManagementView } from './components/SantriManagementView';
 import { JurnalUmumView } from './components/JurnalUmumView';
+import { ProfilPesantrenView } from './components/ProfilPesantrenView';
+import { LandingPage } from './components/LandingPage';
 import { QuickTellerModal } from './components/QuickTellerModal';
 import { DepositModal } from './components/DepositModal';
 import { ReceiptModal } from './components/ReceiptModal';
@@ -32,8 +49,13 @@ import { ShieldCheck, RotateCcw } from 'lucide-react';
 
 const STORAGE_KEY_SANTRI = 'santripay_santri_v1';
 const STORAGE_KEY_TRX = 'santripay_transactions_v1';
+const STORAGE_KEY_PROFILE = 'santripay_profile_v1';
 
 export default function App() {
+  // Authentication & Cloud Realtime State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(false);
+
   // Load state from localStorage or initial seeds
   const [santriList, setSantriList] = useState<Santri[]>(() => {
     try {
@@ -55,8 +77,20 @@ export default function App() {
     return initialTransactions;
   });
 
-  const [pesantrenProfile] = useState<PesantrenProfile>(defaultPesantrenProfile);
-  // Default to 'dashboard' which is Loket Jajan (Rp 10.000)
+  const [pesantrenProfile, setPesantrenProfile] = useState<PesantrenProfile>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_PROFILE);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load profile from storage', e);
+    }
+    return defaultPesantrenProfile;
+  });
+
+  // View mode: 'landing' (Portal Orang Tua + Login Bendahara) or 'dashboard' (Back-office Bendahara)
+  const [viewMode, setViewMode] = useState<'landing' | 'dashboard'>('landing');
+
+  // Default to 'dashboard' which is Penarikan Jajan (Rp 10.000)
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isOpenMobile, setIsOpenMobile] = useState<boolean>(false);
 
@@ -71,7 +105,73 @@ export default function App() {
   const [receiptTrx, setReceiptTrx] = useState<Transaction | null>(null);
   const [receiptSantri, setReceiptSantri] = useState<Santri | null>(null);
 
-  // Sync to localStorage
+  // Initialize Firebase connection & Auth listener
+  useEffect(() => {
+    testConnection();
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      if (user) {
+        setIsCloudConnected(true);
+        // Seed initial data to cloud if collections are empty
+        seedInitialDataToCloud(santriList, transactions, pesantrenProfile);
+      } else {
+        setIsCloudConnected(false);
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+    };
+  }, []);
+
+  // Real-time Firestore synchronizer when user is logged in
+  useEffect(() => {
+    if (!currentUser) return;
+
+    setIsCloudConnected(true);
+
+    const unsubSantri = subscribeToSantri(
+      (cloudSantri) => {
+        if (cloudSantri && cloudSantri.length > 0) {
+          setSantriList(cloudSantri);
+        }
+      },
+      (err) => {
+        console.warn('Realtime santri sync notice:', err);
+      }
+    );
+
+    const unsubTrx = subscribeToTransactions(
+      (cloudTrx) => {
+        if (cloudTrx && cloudTrx.length > 0) {
+          setTransactions(cloudTrx);
+        }
+      },
+      (err) => {
+        console.warn('Realtime transactions sync notice:', err);
+      }
+    );
+
+    const unsubProfile = subscribeToProfile(
+      (cloudProfile) => {
+        if (cloudProfile && cloudProfile.name) {
+          setPesantrenProfile(cloudProfile);
+        }
+      },
+      (err) => {
+        console.warn('Realtime profile sync notice:', err);
+      }
+    );
+
+    return () => {
+      unsubSantri();
+      unsubTrx();
+      unsubProfile();
+    };
+  }, [currentUser]);
+
+  // Sync to localStorage as offline cache
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_SANTRI, JSON.stringify(santriList));
@@ -88,6 +188,14 @@ export default function App() {
     }
   }, [transactions]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(pesantrenProfile));
+    } catch (e) {
+      console.error('Error saving profile data', e);
+    }
+  }, [pesantrenProfile]);
+
   // Derived metrics
   const totalWadiah = santriList.reduce((acc, curr) => acc + curr.balance, 0);
   const todayStr = getTodayDateString();
@@ -95,6 +203,25 @@ export default function App() {
     const el = checkDailyAllowanceEligibility(s, transactions, todayStr);
     return el.status === 'ALREADY_TAKEN';
   }).length;
+
+  // Google Login / Logout handlers
+  const handleSignInGoogle = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Gagal login Google:', error);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await logOut();
+      setIsCloudConnected(false);
+      setViewMode('landing');
+    } catch (error) {
+      console.error('Gagal keluar:', error);
+    }
+  };
 
   // Process Withdrawal (Jajan 10.000 max, 1x a day)
   const handleProcessWithdrawal = (santriId: string, amount: number, notes: string) => {
@@ -125,7 +252,7 @@ export default function App() {
       balanceBefore,
       balanceAfter,
       method: 'CASH',
-      tellerName: 'Ust. M. Ridwan (Teller Loket)',
+      tellerName: currentUser?.displayName ? `${currentUser.displayName} (Loket)` : 'Ust. M. Ridwan (Teller Loket)',
       notes: notes || 'Uang Jajan Harian (Batas Rp 10.000 / Hari)',
       category: 'Uang Jajan Harian',
     };
@@ -137,6 +264,12 @@ export default function App() {
 
     // Append transaction
     setTransactions((prev) => [newTrx, ...prev]);
+
+    // Save to Cloud Firestore
+    if (currentUser) {
+      saveTransactionToCloud(newTrx).catch((e) => console.error('Cloud save trx error:', e));
+      updateSantriBalanceInCloud(santri.id, balanceAfter).catch((e) => console.error('Cloud balance error:', e));
+    }
 
     // Close teller modal and show receipt
     setIsTellerModalOpen(false);
@@ -176,7 +309,9 @@ export default function App() {
       balanceBefore,
       balanceAfter,
       method,
-      tellerName: method.includes('BANK') ? 'Sistem Otomatis (BSI VA)' : 'Ust. H. Ahmad Fauzi (Kasir Loket)',
+      tellerName: method.includes('BANK') 
+        ? 'Sistem Otomatis (BSI VA)' 
+        : (currentUser?.displayName ? `${currentUser.displayName} (Kasir Loket)` : 'Ust. H. Ahmad Fauzi (Kasir Loket)'),
       guardianSenderName: guardianName || santri.guardianName,
       notes: notes || 'Setoran Titipan Uang Saku Santri',
       category: 'Setoran Titipan Wali',
@@ -187,6 +322,12 @@ export default function App() {
     );
 
     setTransactions((prev) => [newTrx, ...prev]);
+
+    // Save to Cloud Firestore
+    if (currentUser) {
+      saveTransactionToCloud(newTrx).catch((e) => console.error('Cloud save trx error:', e));
+      updateSantriBalanceInCloud(santri.id, balanceAfter).catch((e) => console.error('Cloud balance error:', e));
+    }
 
     setIsDepositModalOpen(false);
     setReceiptTrx(newTrx);
@@ -212,6 +353,11 @@ export default function App() {
 
     setSantriList((prev) => [...prev, newSantri]);
 
+    // Save to Cloud Firestore
+    if (currentUser) {
+      saveSantriToCloud(newSantri).catch((e) => console.error('Cloud add santri error:', e));
+    }
+
     if (initialDeposit > 0) {
       const depositTrx: Transaction = {
         id: `trx-${Date.now()}`,
@@ -226,12 +372,24 @@ export default function App() {
         balanceBefore: 0,
         balanceAfter: initialDeposit,
         method: 'CASH',
-        tellerName: 'Ust. H. Ahmad Fauzi (Kasir Loket)',
+        tellerName: currentUser?.displayName ? `${currentUser.displayName} (Kasir Loket)` : 'Ust. H. Ahmad Fauzi (Kasir Loket)',
         guardianSenderName: newSantri.guardianName,
         notes: 'Setoran Awal Buka Rekening Wadiah Santri',
         category: 'Setoran Titipan Wali',
       };
       setTransactions((prev) => [depositTrx, ...prev]);
+
+      if (currentUser) {
+        saveTransactionToCloud(depositTrx).catch((e) => console.error('Cloud deposit trx error:', e));
+      }
+    }
+  };
+
+  // Update profile handler (with cloud sync)
+  const handleUpdateProfile = (newProfile: PesantrenProfile) => {
+    setPesantrenProfile(newProfile);
+    if (currentUser) {
+      saveProfileToCloud(newProfile).catch((e) => console.error('Cloud profile error:', e));
     }
   };
 
@@ -240,10 +398,32 @@ export default function App() {
     if (window.confirm('Apakah Anda yakin ingin mengatur ulang data ke simulasi awal? Semua transaksi baru akan dikembalikan ke data default.')) {
       localStorage.removeItem(STORAGE_KEY_SANTRI);
       localStorage.removeItem(STORAGE_KEY_TRX);
+      localStorage.removeItem(STORAGE_KEY_PROFILE);
       setSantriList(initialSantriList);
       setTransactions(initialTransactions);
+      setPesantrenProfile(defaultPesantrenProfile);
+
+      if (currentUser) {
+        seedInitialDataToCloud(initialSantriList, initialTransactions, defaultPesantrenProfile);
+      }
     }
   };
+
+  // Render Landing Page (Portal Orang Tua Read-Only + Login Pengurus)
+  if (viewMode === 'landing') {
+    return (
+      <LandingPage
+        santriList={santriList}
+        transactions={transactions}
+        pesantrenProfile={pesantrenProfile}
+        currentUser={currentUser}
+        isCloudConnected={isCloudConnected}
+        onSignInGoogle={handleSignInGoogle}
+        onSignOut={handleSignOut}
+        onEnterDashboard={() => setViewMode('dashboard')}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-100/70 text-slate-800 flex font-sans">
@@ -258,11 +438,12 @@ export default function App() {
         onResetData={handleResetData}
         isOpenMobile={isOpenMobile}
         onCloseMobile={() => setIsOpenMobile(false)}
+        onGoToLanding={() => setViewMode('landing')}
       />
 
       {/* Main Content Area (Offset by Sidebar width on desktop md:pl-72) */}
       <div className="flex-1 md:pl-72 flex flex-col min-w-0 min-h-screen">
-        {/* Top Header Navigation Bar */}
+        {/* Top Header Navigation Bar with Cloud Realtime status & Google Auth */}
         <TopHeader
           activeTab={activeTab}
           onOpenMobileMenu={() => setIsOpenMobile(true)}
@@ -270,11 +451,16 @@ export default function App() {
           totalWadiah={totalWadiah}
           santriAlreadyTakenCount={santriAlreadyTakenCount}
           totalActiveSantri={santriList.length}
+          currentUser={currentUser}
+          isCloudConnected={isCloudConnected}
+          onSignInGoogle={handleSignInGoogle}
+          onSignOut={handleSignOut}
+          onGoToLanding={() => setViewMode('landing')}
         />
 
         {/* View Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          {/* LOKET BENDAHARA - Sub-menu 1: Loket Jajan (Rp 10.000) */}
+          {/* LOKET BENDAHARA - Sub-menu 1: Penarikan Jajan (Rp 10.000) */}
           {(activeTab === 'dashboard' || activeTab === 'loket-jajan') && (
             <DashboardTellerView
               santriList={santriList}
@@ -362,6 +548,14 @@ export default function App() {
             <JurnalUmumView
               transactions={transactions}
               pesantrenProfile={pesantrenProfile}
+            />
+          )}
+
+          {/* PENGATURAN - Profil Pesantren & Logo */}
+          {activeTab === 'profil' && (
+            <ProfilPesantrenView
+              pesantrenProfile={pesantrenProfile}
+              onUpdateProfile={handleUpdateProfile}
             />
           )}
         </main>

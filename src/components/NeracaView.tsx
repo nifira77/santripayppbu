@@ -139,6 +139,15 @@ export const NeracaView: React.FC<NeracaViewProps> = ({
           <p className="font-arabic text-sm text-emerald-800 font-bold mb-1">
             بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
           </p>
+          {pesantrenProfile.logoUrl && (
+            <div className="flex justify-center mb-2">
+              <img
+                src={pesantrenProfile.logoUrl}
+                alt="Logo Pesantren"
+                className="w-14 h-14 object-contain"
+              />
+            </div>
+          )}
           <h1 className="text-lg sm:text-xl font-black uppercase text-slate-900 tracking-wide font-sans">
             {pesantrenProfile.formalName}
           </h1>
