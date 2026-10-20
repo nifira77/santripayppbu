@@ -20,7 +20,7 @@ export interface Santri {
   guardianAddress: string;
   balance: number;       // Saldo titipan berjalan (Rupiah)
   dailyAllowanceLimit: number; // Default Rp 10.000
-  status: 'AKTIF' | 'CUTI' | 'ALUMNI';
+  status: 'AKTIF' | 'DIBEKUKAN' | 'CUTI' | 'ALUMNI' | 'NONAKTIF';
   avatarSeed: string;
   createdAt: string;
 }

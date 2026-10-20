@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   PlusCircle, 
   Search, 
@@ -7,13 +7,17 @@ import {
   Receipt, 
   HeartHandshake, 
   ArrowRight, 
-  Printer, 
-  CheckCircle,
-  Clock,
-  ArrowDownLeft
+  CheckCircle2, 
+  Clock, 
+  UserCheck, 
+  X, 
+  Check, 
+  Wallet,
+  Sparkles,
+  AlertCircle
 } from 'lucide-react';
 import { Santri, Transaction, PaymentMethod, PesantrenProfile } from '../types/finance';
-import { formatRupiah, formatDateIndo } from '../utils/accounting';
+import { formatRupiah, formatPaymentMethodLabel } from '../utils/accounting';
 
 interface SetorTitipanViewProps {
   santriList: Santri[];
@@ -36,36 +40,72 @@ export const SetorTitipanView: React.FC<SetorTitipanViewProps> = ({
   onProcessDeposit,
   onViewReceipt,
 }) => {
+  // Selected santri ID
   const [selectedSantriId, setSelectedSantriId] = useState<string>(santriList[0]?.id || '');
-  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Search query for searching santri
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  
+  // Deposit form state
   const [amount, setAmount] = useState<number>(300000);
   const [method, setMethod] = useState<PaymentMethod>('BANK_TRANSFER_BSI');
   const [guardianSenderName, setGuardianSenderName] = useState<string>('');
   const [notes, setNotes] = useState<string>('Titipan uang saku santri');
 
-  const selectedSantri = santriList.find((s) => s.id === selectedSantriId) || santriList[0];
+  // Currently selected santri object
+  const selectedSantri = useMemo(() => {
+    return santriList.find((s) => s.id === selectedSantriId) || santriList[0];
+  }, [santriList, selectedSantriId]);
 
-  const handleSelectSantri = (id: string) => {
-    setSelectedSantriId(id);
-    const s = santriList.find((item) => item.id === id);
-    if (s) {
-      setGuardianSenderName(s.guardianName);
-    }
+  // Handle selecting a santri: updates selected ID and defaults guardian name
+  const handleSelectSantri = (santri: Santri) => {
+    setSelectedSantriId(santri.id);
+    setGuardianSenderName(santri.guardianName);
   };
 
-  const filteredSantri = santriList.filter((s) =>
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.nisn.includes(searchTerm) ||
-    s.accountNumber.includes(searchTerm) ||
-    s.dormitory.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtered santri based on search input (name, account number, NISN, dormitory)
+  const filteredSantri = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return santriList.filter((s) => {
+      const matchName = s.name.toLowerCase().includes(q);
+      const matchAcc = s.accountNumber.toLowerCase().includes(q);
+      const matchNis = s.nisn.toLowerCase().includes(q);
+      const matchDorm = s.dormitory.toLowerCase().includes(q);
+      return matchName || matchAcc || matchNis || matchDorm;
+    });
+  }, [santriList, searchQuery]);
+
+  // Deposit transactions specifically for the selected santri
+  const santriDeposits = useMemo(() => {
+    if (!selectedSantri) return [];
+    return transactions
+      .filter((t) => t.santriId === selectedSantri.id && t.type === 'DEPOSIT_WADIAH')
+      .sort((a, b) => {
+        const comp = b.date.localeCompare(a.date);
+        if (comp !== 0) return comp;
+        return (b.time || '').localeCompare(a.time || '');
+      });
+  }, [selectedSantri, transactions]);
+
+  // Total deposits ever received for this santri
+  const totalSantriDeposits = useMemo(() => {
+    return santriDeposits.reduce((acc, curr) => acc + curr.amount, 0);
+  }, [santriDeposits]);
+
+  // Global recent deposit transactions (all santri)
+  const allRecentDeposits = useMemo(() => {
+    return transactions
+      .filter((t) => t.type === 'DEPOSIT_WADIAH')
+      .sort((a, b) => {
+        const comp = b.date.localeCompare(a.date);
+        if (comp !== 0) return comp;
+        return (b.time || '').localeCompare(a.time || '');
+      })
+      .slice(0, 8);
+  }, [transactions]);
 
   const quickAmounts = [100000, 200000, 300000, 500000, 1000000];
-
-  // Recent deposit transactions
-  const recentDeposits = transactions
-    .filter((t) => t.type === 'DEPOSIT_WADIAH')
-    .slice(0, 10);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,96 +114,238 @@ export const SetorTitipanView: React.FC<SetorTitipanViewProps> = ({
       selectedSantri.id,
       amount,
       method,
-      guardianSenderName || selectedSantri.guardianName,
-      notes
+      guardianSenderName.trim() || selectedSantri.guardianName,
+      notes.trim() || 'Titipan uang saku santri'
     );
   };
 
   return (
     <div className="space-y-6">
       {/* Top Description Banner */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
-        <div className="flex items-center space-x-3">
+      <div className="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
+        <div className="flex items-center space-x-3.5">
           <div className="p-3 bg-amber-100 text-amber-800 rounded-xl shrink-0">
             <PlusCircle className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-slate-900">
-              Loket Bendahara: Setor Titipan Wali Santri
-            </h2>
+            <div className="flex items-center space-x-2">
+              <h2 className="text-base font-bold text-slate-900">
+                Loket Bendahara: Setor Titipan Wali Santri
+              </h2>
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                Akad Wadiah
+              </span>
+            </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Penerimaan dan pencatatan dana titipan dari orang tua santri (Akad Wadiah Yad Dhamanah)
+              Penerimaan dan pencatatan dana titipan dari orang tua santri ({pesantrenProfile.name})
             </p>
           </div>
         </div>
 
-        <div className="text-left md:text-right text-xs bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl">
-          <p className="text-slate-500 text-[11px]">Batas Pengambilan Jajan Harian:</p>
-          <p className="font-bold text-amber-900 font-mono-numbers">Maksimal Rp 10.000 / Hari (1x Penarikan)</p>
+        <div className="text-left md:text-right text-xs bg-amber-50/80 border border-amber-200 px-4 py-2.5 rounded-xl">
+          <p className="text-slate-500 text-[11px] font-medium">Batas Pengambilan Jajan Harian:</p>
+          <p className="font-bold text-amber-900 font-mono-numbers text-xs">
+            Maksimal Rp 10.000 / Hari (Disiplin 1x Penarikan)
+          </p>
         </div>
       </div>
 
-      {/* Main Grid: Form Left, Recent Deposits Right */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Form Column (7 Cols) */}
-        <div className="lg:col-span-7 bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-          <h3 className="text-sm font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center justify-between">
-            <span>Formulir Setoran Titipan Santri</span>
-            <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-amber-100 text-amber-800">
+      {/* Main Grid: Form Left (7 Cols), Deposits History Right (5 Cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* ======================================================== */}
+        {/* KOLOM KIRI: FORMULIR SETORAN TITIPAN (7 COLS) */}
+        {/* ======================================================== */}
+        <div className="lg:col-span-7 bg-white rounded-2xl p-6 shadow-xs border border-slate-200 space-y-5">
+          <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">
+                Formulir Setoran Titipan Santri
+              </h3>
+              <p className="text-xs text-slate-500">
+                Cari santri penerima, masukkan nominal titipan, dan simpan transaksi loket
+              </p>
+            </div>
+            <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-200">
               Kasir Loket
             </span>
-          </h3>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Select Santri */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Pilih Santri Penerima Titipan
+            {/* Bagian Pencarian & Pemilihan Santri */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Pencarian Santri Penerima Titipan
               </label>
-              <div className="relative mb-2">
-                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+
+              {/* Input Pencarian Santri */}
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Cari nama santri / NISN / asrama..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="Ketik Nama Santri / No. Rekening / NISN / Asrama..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-20 py-2.5 text-xs sm:text-sm bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 focus:border-amber-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium transition-all"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-2 px-2 py-1 text-[11px] font-semibold text-slate-500 hover:text-slate-800 bg-slate-200/80 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Hapus
+                  </button>
+                )}
               </div>
 
-              <select
-                value={selectedSantriId}
-                onChange={(e) => handleSelectSantri(e.target.value)}
-                className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800"
-              >
-                {filteredSantri.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} - Rek: {s.accountNumber} ({s.dormitory.split(' - ')[0]}) - Saldo: {formatRupiah(s.balance)}
-                  </option>
-                ))}
-              </select>
+              {/* Menu Pilih Santri yang Ditemukan (Muncul saat mengetik) */}
+              {searchQuery.trim().length > 0 && (
+                <div className="bg-slate-50/90 rounded-xl p-3 border border-amber-300/80 space-y-2 shadow-xs">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-amber-900 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Hasil Pencarian ({filteredSantri.length} Santri):</span>
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      Klik tombol <strong>Pilih</strong> untuk menetapkan santri
+                    </span>
+                  </div>
+
+                  {filteredSantri.length === 0 ? (
+                    <div className="p-3 text-center text-xs text-slate-500 bg-white rounded-lg border border-dashed border-slate-300">
+                      Santri dengan kata kunci &quot;{searchQuery}&quot; tidak ditemukan. Silakan periksa kembali nama, NISN, atau No. Rekening.
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                      {filteredSantri.map((s) => {
+                        const isSelected = selectedSantri?.id === s.id;
+                        return (
+                          <div
+                            key={s.id}
+                            className={`p-2.5 rounded-xl border flex items-center justify-between transition-all ${
+                              isSelected
+                                ? 'bg-amber-100/70 border-amber-500 ring-1 ring-amber-500 text-slate-900'
+                                : 'bg-white hover:bg-slate-100/80 border-slate-200 text-slate-800'
+                            }`}
+                          >
+                            <div className="min-w-0 pr-2">
+                              <p className="text-xs font-bold text-slate-900 truncate">
+                                {s.name}
+                              </p>
+                              <p className="text-[11px] text-slate-500 truncate">
+                                Rek: <span className="font-mono font-semibold text-slate-700">{s.accountNumber}</span> • NISN: {s.nisn} • {s.dormitory.split(' - ')[0]}
+                              </p>
+                              <p className="text-[10px] text-emerald-700 font-semibold">
+                                Saldo Saat Ini: {formatRupiah(s.balance)} • Wali: {s.guardianName}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleSelectSantri(s)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center space-x-1 ${
+                                isSelected
+                                  ? 'bg-amber-600 text-white shadow-xs'
+                                  : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300'
+                              }`}
+                            >
+                              {isSelected ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Terpilih</span>
+                                </>
+                              ) : (
+                                <span>Pilih</span>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Selector Cepat / Pilihan Dropdown jika ingin memilih langsung */}
+              <div className="pt-1">
+                <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
+                  <span>Atau pilih langsung dari daftar seluruh santri:</span>
+                  <span className="font-semibold text-slate-600">{santriList.length} Santri Terdaftar</span>
+                </div>
+                <select
+                  value={selectedSantriId}
+                  onChange={(e) => {
+                    const found = santriList.find((s) => s.id === e.target.value);
+                    if (found) handleSelectSantri(found);
+                  }}
+                  className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 cursor-pointer"
+                >
+                  {santriList.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} — Rek: {s.accountNumber} ({s.dormitory.split(' - ')[0]}) — Saldo: {formatRupiah(s.balance)}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Santri Card Snapshot */}
+            {/* Snapshot Santri Aktif Terpilih (Data yang Tampil Mengacu pada Santri yang Tertulis) */}
             {selectedSantri && (
-              <div className="bg-gradient-to-r from-amber-50/70 to-emerald-50/70 border border-amber-200/80 rounded-xl p-3.5 flex items-center justify-between text-xs">
-                <div>
-                  <p className="font-bold text-slate-900">{selectedSantri.name}</p>
-                  <p className="text-[11px] text-slate-600">
-                    NISN: {selectedSantri.nisn} • Wali: {selectedSantri.guardianName}
-                  </p>
-                  <p className="text-[11px] text-slate-500">{selectedSantri.dormitory}</p>
+              <div className="bg-gradient-to-br from-amber-50/80 via-white to-emerald-50/80 border-2 border-amber-300/80 rounded-2xl p-4 shadow-xs space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-amber-200/60">
+                  <div className="flex items-center space-x-2">
+                    <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-700">
+                      <UserCheck className="w-4 h-4" />
+                    </span>
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                      Santri Penerima Terpilih:
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    Akun Rekening Aktif
+                  </span>
                 </div>
-                <div className="text-right">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wider">Saldo Wadiah Berjalan</p>
-                  <p className="text-base font-black text-emerald-800 font-mono-numbers">
-                    {formatRupiah(selectedSantri.balance)}
-                  </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="space-y-1">
+                    <p className="text-sm font-extrabold text-slate-900 leading-tight">
+                      {selectedSantri.name}
+                    </p>
+                    <p className="text-slate-600 font-medium">
+                      No. Rekening:{' '}
+                      <strong className="text-amber-900 font-mono font-bold bg-amber-100/70 px-1.5 py-0.5 rounded">
+                        {selectedSantri.accountNumber}
+                      </strong>
+                    </p>
+                    <p className="text-slate-500 text-[11px]">
+                      NISN: {selectedSantri.nisn} • {selectedSantri.dormitory}
+                    </p>
+                    <p className="text-slate-600 text-[11px]">
+                      Wali Santri: <strong className="text-slate-800">{selectedSantri.guardianName}</strong>
+                    </p>
+                  </div>
+
+                  <div className="bg-white/80 p-3 rounded-xl border border-amber-200/80 flex flex-col justify-between">
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">
+                        Saldo Wadiah Saat Ini
+                      </p>
+                      <p className="text-base font-black text-emerald-800 font-mono-numbers">
+                        {formatRupiah(selectedSantri.balance)}
+                      </p>
+                    </div>
+                    <div className="pt-2 border-t border-slate-100 mt-1">
+                      <p className="text-[10px] text-slate-500">Estimasi Saldo Setelah Setor:</p>
+                      <p className="text-xs font-extrabold text-amber-900 font-mono-numbers">
+                        {formatRupiah(selectedSantri.balance + (amount > 0 ? amount : 0))}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Amount */}
+            {/* Nominal Setoran */}
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 Nominal Setoran Titipan (Rupiah)
@@ -190,7 +372,7 @@ export const SetorTitipanView: React.FC<SetorTitipanViewProps> = ({
                     onClick={() => setAmount(q)}
                     className={`px-3 py-1 text-xs rounded-lg border font-mono-numbers transition-all cursor-pointer ${
                       amount === q
-                        ? 'bg-amber-600 text-white border-amber-600 font-bold'
+                        ? 'bg-amber-600 text-white border-amber-600 font-bold shadow-xs'
                         : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
                     }`}
                   >
@@ -200,34 +382,19 @@ export const SetorTitipanView: React.FC<SetorTitipanViewProps> = ({
               </div>
             </div>
 
-            {/* Kanal Setoran */}
+            {/* Kanal Setoran Pembayaran */}
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 Metode Pembayaran
               </label>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setMethod('BANK_TRANSFER_BSI')}
-                  className={`p-2.5 rounded-xl border flex items-center space-x-2 text-left cursor-pointer ${
-                    method === 'BANK_TRANSFER_BSI'
-                      ? 'border-amber-600 bg-amber-50 text-amber-950 font-bold ring-1 ring-amber-600'
-                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  <CreditCard className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <div>
-                    <p className="font-semibold">Transfer BSI VA</p>
-                    <p className="text-[10px] text-slate-500">Bank Syariah Indonesia</p>
-                  </div>
-                </button>
-
+                {/* Sebelah Kiri: Tunai Bendahara */}
                 <button
                   type="button"
                   onClick={() => setMethod('CASH')}
-                  className={`p-2.5 rounded-xl border flex items-center space-x-2 text-left cursor-pointer ${
+                  className={`p-2.5 rounded-xl border flex items-center space-x-2 text-left cursor-pointer transition-all ${
                     method === 'CASH'
-                      ? 'border-amber-600 bg-amber-50 text-amber-950 font-bold ring-1 ring-amber-600'
+                      ? 'border-amber-600 bg-amber-50 text-amber-950 font-bold ring-1 ring-amber-600 shadow-xs'
                       : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
                   }`}
                 >
@@ -237,10 +404,27 @@ export const SetorTitipanView: React.FC<SetorTitipanViewProps> = ({
                     <p className="text-[10px] text-slate-500">Langsung di Loket Pesantren</p>
                   </div>
                 </button>
+
+                {/* Sebelah Kanan: Transfer Via Bank */}
+                <button
+                  type="button"
+                  onClick={() => setMethod('BANK_TRANSFER_BSI')}
+                  className={`p-2.5 rounded-xl border flex items-center space-x-2 text-left cursor-pointer transition-all ${
+                    method === 'BANK_TRANSFER_BSI'
+                      ? 'border-amber-600 bg-amber-50 text-amber-950 font-bold ring-1 ring-amber-600 shadow-xs'
+                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div>
+                    <p className="font-semibold">Transfer Via Bank</p>
+                    <p className="text-[10px] text-slate-500">Semua Rekening Bank & ATM</p>
+                  </div>
+                </button>
               </div>
             </div>
 
-            {/* Wali & Notes */}
+            {/* Wali Penyetor & Notes */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -251,7 +435,7 @@ export const SetorTitipanView: React.FC<SetorTitipanViewProps> = ({
                   value={guardianSenderName || selectedSantri?.guardianName || ''}
                   onChange={(e) => setGuardianSenderName(e.target.value)}
                   placeholder="Nama Ayah / Ibu / Wali"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
                 />
               </div>
 
@@ -263,65 +447,171 @@ export const SetorTitipanView: React.FC<SetorTitipanViewProps> = ({
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Contoh: Titipan jajan bulan ini"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="Contoh: Titipan uang saku jajan"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
                 />
               </div>
             </div>
 
-            {/* Sharia Akad box */}
-            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-[11px] text-emerald-900 flex items-start space-x-2.5">
+            {/* Sharia Akad Box */}
+            <div className="p-3 bg-emerald-50/80 rounded-xl border border-emerald-200 text-[11px] text-emerald-900 flex items-start space-x-2.5">
               <HeartHandshake className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold">Kaidah Akad Wadiah Yad Dhamanah:</p>
                 <p className="text-[10px] text-emerald-800 leading-relaxed mt-0.5">
-                  Dana yang dititipkan adalah amanah suci dari orang tua yang dikelola oleh bendahara pesantren. Santri berhak mengambil uang jajan harian maksimal Rp 10.000 satu kali setiap harinya.
+                  Dana yang disetorkan adalah titipan murni dari orang tua untuk anak tercinta yang dikelola amanah oleh bendahara pesantren. Santri dapat mengambil jajan harian maksimal Rp 10.000 satu kali per hari.
                 </p>
               </div>
             </div>
 
-            {/* Submit */}
+            {/* Submit Button */}
             <div className="pt-2">
               <button
                 type="submit"
-                className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl font-bold text-xs uppercase tracking-wider bg-amber-600 hover:bg-amber-500 active:scale-95 text-white shadow-md shadow-amber-600/30 transition-all cursor-pointer"
+                disabled={!selectedSantri || amount <= 0}
+                className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl font-bold text-xs sm:text-sm uppercase tracking-wider bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 active:scale-98 text-white shadow-md shadow-amber-700/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span>Proses Setoran Titipan {formatRupiah(amount)}</span>
+                <span>Proses Setoran {formatRupiah(amount)} ({selectedSantri?.name || 'Santri'})</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </form>
         </div>
 
-        {/* Recent Deposits Column (5 Cols) */}
-        <div className="lg:col-span-5 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-emerald-600" />
-                <span>Riwayat Setoran Titipan Terakhir</span>
+        {/* ======================================================== */}
+        {/* KOLOM KANAN: RIWAYAT SETORAN SANTRI & TERAKHIR (5 COLS) */}
+        {/* ======================================================== */}
+        <div className="lg:col-span-5 space-y-5">
+          {/* BAGIAN ATAS: Riwayat Setoran Khusus Atas Nama Santri Tersebut */}
+          <div className="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
+            <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700">
+                  <UserCheck className="w-4 h-4" />
+                </span>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                    Riwayat Setoran: {selectedSantri?.name || 'Santri Terpilih'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    No. Rek: <span className="font-mono font-semibold">{selectedSantri?.accountNumber}</span>
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                {santriDeposits.length} Setoran
               </span>
-              <span className="text-[10px] text-slate-500 font-mono">
-                {recentDeposits.length} Catatan
-              </span>
-            </h3>
+            </div>
 
-            <div className="space-y-2.5 overflow-y-auto max-h-[460px]">
-              {recentDeposits.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400">
-                  Belum ada setoran titipan tercatat
+            {/* Ringkasan Akumulasi Setoran Santri */}
+            <div className="grid grid-cols-2 gap-2 bg-slate-50 rounded-xl p-2.5 border border-slate-200 text-xs">
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase font-semibold">Total Titipan Masuk</p>
+                <p className="font-extrabold text-emerald-800 font-mono-numbers text-xs sm:text-sm">
+                  {formatRupiah(totalSantriDeposits)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase font-semibold">Saldo Wadiah Aktif</p>
+                <p className="font-extrabold text-slate-900 font-mono-numbers text-xs sm:text-sm">
+                  {formatRupiah(selectedSantri?.balance || 0)}
+                </p>
+              </div>
+            </div>
+
+            {/* Daftar Riwayat Khusus Santri Ini */}
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              {santriDeposits.length === 0 ? (
+                <div className="p-4 text-center rounded-xl bg-slate-50 border border-dashed border-slate-200 text-slate-400 text-xs space-y-1">
+                  <AlertCircle className="w-4 h-4 mx-auto text-slate-400" />
+                  <p>Belum ada riwayat setoran untuk santri ini.</p>
+                  <p className="text-[10px]">Gunakan formulir di samping untuk melakukan setoran pertama.</p>
                 </div>
               ) : (
-                recentDeposits.map((trx) => {
+                santriDeposits.map((trx) => (
+                  <div
+                    key={trx.id}
+                    className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition-colors flex items-center justify-between text-xs"
+                  >
+                    <div className="min-w-0 pr-2">
+                      <div className="flex items-center space-x-1.5 text-[10px] text-slate-500 font-medium">
+                        <span>{trx.date}</span>
+                        <span>•</span>
+                        <span>{trx.time.slice(0, 5)} WIB</span>
+                      </div>
+                      <p className="font-bold text-slate-900 truncate text-[11px]">
+                        Penyetor: {trx.guardianSenderName || selectedSantri.guardianName}
+                      </p>
+                      <p className="text-[10px] text-slate-500 truncate">
+                        {trx.notes || 'Setoran Titipan'}
+                      </p>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        {formatPaymentMethodLabel(trx.method)}
+                      </span>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-black text-emerald-700 font-mono-numbers">
+                        +{formatRupiah(trx.amount)}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => onViewReceipt(trx, selectedSantri)}
+                        className="mt-1 flex items-center space-x-1 text-[10px] text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-2 py-0.5 rounded-lg cursor-pointer ml-auto hover:bg-slate-100"
+                        title="Cetak Slip Setoran"
+                      >
+                        <Receipt className="w-3 h-3 text-slate-500" />
+                        <span>Slip</span>
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* BAGIAN BAWAH: Riwayat Setoran Titipan Terakhir (Semua Santri) */}
+          <div className="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
+            <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="p-1.5 rounded-lg bg-amber-100 text-amber-700">
+                  <Clock className="w-4 h-4" />
+                </span>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                    Riwayat Setoran Titipan Terakhir
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Aktivitas setoran seluruh santri pesantren
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] text-slate-500 font-mono">
+                {allRecentDeposits.length} Catatan
+              </span>
+            </div>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {allRecentDeposits.length === 0 ? (
+                <div className="py-6 text-center text-xs text-slate-400">
+                  Belum ada transaksi setoran titipan tercatat
+                </div>
+              ) : (
+                allRecentDeposits.map((trx) => {
                   const s = santriList.find((item) => item.id === trx.santriId);
+                  const isCurrentSantri = trx.santriId === selectedSantri?.id;
 
                   return (
                     <div
                       key={trx.id}
-                      className="p-3 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors flex items-center justify-between"
+                      className={`p-2.5 rounded-xl border transition-colors flex items-center justify-between text-xs ${
+                        isCurrentSantri
+                          ? 'border-amber-300 bg-amber-50/50'
+                          : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50'
+                      }`}
                     >
                       <div className="min-w-0 pr-2">
-                        <div className="flex items-center space-x-1.5 text-[10px] text-slate-500">
+                        <div className="flex items-center space-x-1.5 text-[10px] text-slate-500 font-medium">
                           <span>{trx.date}</span>
                           <span>•</span>
                           <span>{trx.time.slice(0, 5)} WIB</span>
@@ -329,22 +619,24 @@ export const SetorTitipanView: React.FC<SetorTitipanViewProps> = ({
                         <p className="text-xs font-bold text-slate-900 truncate">
                           {trx.santriName}
                         </p>
-                        <p className="text-[11px] text-slate-600 truncate">
+                        <p className="text-[10px] text-slate-500 truncate">
                           Penyetor: {trx.guardianSenderName || 'Wali Santri'}
                         </p>
-                        <span className="text-[10px] text-emerald-700 font-semibold">
-                          {trx.method.replace(/_/g, ' ')}
+                        <span className="text-[9px] text-emerald-700 font-semibold">
+                          {formatPaymentMethodLabel(trx.method)}
                         </span>
                       </div>
 
                       <div className="text-right shrink-0">
-                        <p className="text-xs font-black text-emerald-800 font-mono-numbers">
+                        <p className="text-xs font-black text-emerald-700 font-mono-numbers">
                           +{formatRupiah(trx.amount)}
                         </p>
                         {s && (
                           <button
+                            type="button"
                             onClick={() => onViewReceipt(trx, s)}
-                            className="mt-1 flex items-center space-x-1 text-[10px] text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-2 py-0.5 rounded cursor-pointer ml-auto"
+                            className="mt-1 flex items-center space-x-1 text-[10px] text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-2 py-0.5 rounded-lg cursor-pointer ml-auto hover:bg-slate-100"
+                            title="Cetak Slip Setoran"
                           >
                             <Receipt className="w-3 h-3 text-slate-500" />
                             <span>Slip</span>
@@ -356,10 +648,10 @@ export const SetorTitipanView: React.FC<SetorTitipanViewProps> = ({
                 })
               )}
             </div>
-          </div>
 
-          <div className="pt-4 border-t border-slate-100 text-[11px] text-slate-500 text-center">
-            Setiap setoran otomatis tercatat ke dalam Rekening Koran dan Jurnal Umum.
+            <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-400 text-center">
+              Setiap setoran otomatis membukukan kas masuk di Jurnal Umum & Rekening Koran.
+            </div>
           </div>
         </div>
       </div>

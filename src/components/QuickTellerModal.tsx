@@ -193,7 +193,12 @@ export const QuickTellerModal: React.FC<QuickTellerModalProps> = ({
 
                       {/* Status Tag */}
                       <div className="shrink-0 ml-2">
-                        {check.status === 'ALREADY_TAKEN' ? (
+                        {check.status === 'INACTIVE' ? (
+                          <span className="flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300">
+                            <Lock className="w-3 h-3" />
+                            <span>Dibekukan</span>
+                          </span>
+                        ) : check.status === 'ALREADY_TAKEN' ? (
                           <span className="flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300">
                             <Lock className="w-3 h-3" />
                             <span>Sudah Ambil</span>
@@ -282,6 +287,27 @@ export const QuickTellerModal: React.FC<QuickTellerModalProps> = ({
                 </div>
 
                 {/* ELIGIBILITY & STATUS BANNER (Strict Rule Verification) */}
+                {eligibility.status === 'INACTIVE' && (
+                  <div className="bg-rose-50 border-2 border-rose-300 rounded-xl p-4 text-rose-900 shadow-sm animate-pulse-once">
+                    <div className="flex items-start space-x-3">
+                      <div className="p-2 bg-rose-200 text-rose-800 rounded-lg shrink-0 mt-0.5">
+                        <Lock className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-rose-950 flex items-center gap-1.5">
+                          <span>PENARIKAN DITOLAK: REKENING SANTRI DIBEKUKAN / NONAKTIF</span>
+                        </h4>
+                        <p className="text-xs text-rose-800 mt-1 leading-relaxed">
+                          Rekening santri saat ini berstatus <strong>{selectedSantri.status}</strong> (tidak aktif / keluar). Penarikan uang jajan tidak dapat diproses.
+                        </p>
+                        <div className="mt-2 text-[11px] bg-rose-100/80 p-2 rounded-md border border-rose-200 font-medium">
+                          <strong>Solusi:</strong> Jika santri telah aktif kembali belajar di pesantren, bendahara dapat mengaktifkan kembali rekening ini melalui menu <strong>Data Santri</strong>.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {eligibility.status === 'ALREADY_TAKEN' && (
                   <div className="bg-rose-50 border-2 border-rose-300 rounded-xl p-4 text-rose-900 shadow-sm animate-pulse-once">
                     <div className="flex items-start space-x-3">
@@ -389,7 +415,12 @@ export const QuickTellerModal: React.FC<QuickTellerModalProps> = ({
                     : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
                 }`}
               >
-                {eligibility?.status === 'ALREADY_TAKEN' ? (
+                {eligibility?.status === 'INACTIVE' ? (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    <span>Rekening Dibekukan</span>
+                  </>
+                ) : eligibility?.status === 'ALREADY_TAKEN' ? (
                   <>
                     <Lock className="w-4 h-4" />
                     <span>Sistem Terkunci (Sudah Ambil 1x)</span>

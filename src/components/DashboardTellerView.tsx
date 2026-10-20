@@ -293,6 +293,7 @@ export const DashboardTellerView: React.FC<DashboardTellerViewProps> = ({
                   </tr>
                 ) : (
                   filteredList.map(({ santri, eligibility }) => {
+                    const isInactive = santri.status !== 'AKTIF';
                     const isEligible = eligibility.canWithdraw;
                     const isTaken = eligibility.status === 'ALREADY_TAKEN';
                     const isLowBalance = eligibility.status === 'INSUFFICIENT_BALANCE';
@@ -301,7 +302,7 @@ export const DashboardTellerView: React.FC<DashboardTellerViewProps> = ({
                       <tr 
                         key={santri.id} 
                         className={`hover:bg-slate-50 transition-colors ${
-                          isTaken ? 'bg-slate-50/50' : isLowBalance ? 'bg-amber-50/30' : 'bg-white'
+                          isInactive ? 'bg-rose-50/20' : isTaken ? 'bg-slate-50/50' : isLowBalance ? 'bg-amber-50/30' : 'bg-white'
                         }`}
                       >
                         {/* No Rek */}
@@ -347,7 +348,12 @@ export const DashboardTellerView: React.FC<DashboardTellerViewProps> = ({
 
                         {/* Status Jajan Hari Ini */}
                         <td className="px-4 py-3 text-center">
-                          {isTaken ? (
+                          {isInactive ? (
+                            <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                              <Lock className="w-3 h-3" />
+                              <span>Rekening Dibekukan</span>
+                            </span>
+                          ) : isTaken ? (
                             <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700">
                               <Lock className="w-3 h-3" />
                               <span>Diambil {eligibility.todayWithdrawal?.time.slice(0, 5)} WIB</span>
@@ -368,7 +374,11 @@ export const DashboardTellerView: React.FC<DashboardTellerViewProps> = ({
                         {/* Action: 1-Click Dispense Button */}
                         <td className="px-4 py-3 text-center no-print">
                           <div className="flex items-center justify-center space-x-1.5">
-                            {isEligible ? (
+                            {isInactive ? (
+                              <div className="py-1.5 px-3 bg-rose-50 text-rose-700 font-semibold text-[11px] rounded-xl border border-rose-200">
+                                <span>Dibekukan</span>
+                              </div>
+                            ) : isEligible ? (
                               <button
                                 onClick={() => onQuickDispense(santri.id)}
                                 className="flex items-center space-x-1.5 py-1.5 px-3 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
@@ -410,6 +420,7 @@ export const DashboardTellerView: React.FC<DashboardTellerViewProps> = ({
         {displayLayout === 'CARDS' && (
           <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredList.map(({ santri, eligibility }) => {
+              const isInactive = santri.status !== 'AKTIF';
               const isEligible = eligibility.canWithdraw;
               const isTaken = eligibility.status === 'ALREADY_TAKEN';
               const isLowBalance = eligibility.status === 'INSUFFICIENT_BALANCE';
@@ -418,7 +429,9 @@ export const DashboardTellerView: React.FC<DashboardTellerViewProps> = ({
                 <div
                   key={santri.id}
                   className={`rounded-2xl border p-4.5 flex flex-col justify-between transition-all ${
-                    isTaken
+                    isInactive
+                      ? 'bg-rose-50/20 border-rose-200'
+                      : isTaken
                       ? 'bg-slate-50/70 border-slate-200 opacity-90'
                       : isLowBalance
                       ? 'bg-amber-50/40 border-amber-200'
@@ -430,13 +443,13 @@ export const DashboardTellerView: React.FC<DashboardTellerViewProps> = ({
                       <div className="flex items-center space-x-3">
                         <div
                           className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
-                            santri.gender === 'L' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'
+                            isInactive ? 'bg-rose-100 text-rose-700' : santri.gender === 'L' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'
                           }`}
                         >
                           {santri.name.charAt(0)}
                         </div>
                         <div>
-                          <h4 className="font-bold text-slate-900 text-sm leading-tight">
+                          <h4 className={`font-bold text-sm leading-tight ${isInactive ? 'text-slate-600 line-through' : 'text-slate-900'}`}>
                             {santri.name}
                           </h4>
                           <p className="text-[11px] text-slate-500">
@@ -445,7 +458,12 @@ export const DashboardTellerView: React.FC<DashboardTellerViewProps> = ({
                         </div>
                       </div>
 
-                      {isTaken ? (
+                      {isInactive ? (
+                        <span className="flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300">
+                          <Lock className="w-3 h-3" />
+                          <span>Dibekukan</span>
+                        </span>
+                      ) : isTaken ? (
                         <span className="flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700">
                           <Lock className="w-3 h-3" />
                           <span>Sudah 1x</span>
@@ -483,7 +501,12 @@ export const DashboardTellerView: React.FC<DashboardTellerViewProps> = ({
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-slate-100 flex items-center space-x-2">
-                    {isEligible ? (
+                    {isInactive ? (
+                      <div className="flex-1 py-2 px-3 bg-rose-50 border border-rose-200 rounded-xl text-center text-rose-800 font-semibold text-[11px] flex items-center justify-center space-x-1.5">
+                        <Lock className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Rekening Dibekukan</span>
+                      </div>
+                    ) : isEligible ? (
                       <button
                         onClick={() => onQuickDispense(santri.id)}
                         className="flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"

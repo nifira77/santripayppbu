@@ -1,7 +1,7 @@
 import React from 'react';
 import { Printer, CheckCircle, X, ShieldCheck } from 'lucide-react';
 import { Transaction, Santri, PesantrenProfile } from '../types/finance';
-import { formatRupiah, formatDateIndo } from '../utils/accounting';
+import { formatRupiah, formatDateIndo, formatPaymentMethodLabel } from '../utils/accounting';
 
 interface ReceiptModalProps {
   transaction: Transaction;
@@ -104,6 +104,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 <div className="flex justify-between">
                   <span className="text-slate-500 font-sans">Penyetor (Wali)</span>
                   <span className="font-medium font-sans">{transaction.guardianSenderName}</span>
+                </div>
+              )}
+              {transaction.type === 'DEPOSIT_WADIAH' && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-sans">Metode Penyetoran</span>
+                  <span className="font-medium font-sans text-emerald-800 font-semibold">
+                    {formatPaymentMethodLabel(transaction.method)}
+                  </span>
                 </div>
               )}
               <div className="flex justify-between">

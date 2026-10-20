@@ -101,26 +101,75 @@ export const DepositModal: React.FC<DepositModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4">
           {/* Santri Selection */}
-          <div>
+          <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Pilih Santri Penerima Titipan
             </label>
-            <div className="relative mb-2">
-              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Cari santri..."
+                placeholder="Ketik nama santri / NISN / No. Rekening..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full pl-9 pr-16 py-2 text-xs bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-1.5 px-2 py-0.5 text-[10px] font-bold text-slate-500 bg-slate-200 hover:bg-slate-300 rounded-md transition-colors"
+                >
+                  Hapus
+                </button>
+              )}
             </div>
+
+            {/* Menu Pilih Santri yang Ditemukan saat mengetik */}
+            {searchTerm.trim().length > 0 && (
+              <div className="bg-amber-50/70 border border-amber-300 rounded-xl p-2.5 space-y-1.5 max-h-40 overflow-y-auto">
+                <p className="text-[11px] font-bold text-amber-900">Hasil Pencarian ({filteredSantri.length} Santri):</p>
+                {filteredSantri.length === 0 ? (
+                  <p className="text-xs text-slate-500 py-1 text-center">Santri tidak ditemukan</p>
+                ) : (
+                  filteredSantri.map((s) => {
+                    const isSelected = selectedSantri?.id === s.id;
+                    return (
+                      <div
+                        key={s.id}
+                        className={`p-2 rounded-lg border flex items-center justify-between text-xs transition-all ${
+                          isSelected ? 'bg-amber-200/80 border-amber-500 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="min-w-0 pr-2">
+                          <p className="font-bold text-slate-900 truncate">{s.name}</p>
+                          <p className="text-[10px] text-slate-500">Rek: {s.accountNumber} • Saldo: {formatRupiah(s.balance)}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleSelectSantri(s.id);
+                            setSearchTerm('');
+                          }}
+                          className={`px-2.5 py-1 text-xs rounded font-bold cursor-pointer transition-colors ${
+                            isSelected ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                          }`}
+                        >
+                          {isSelected ? 'Terpilih' : 'Pilih'}
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+
             <select
               value={selectedSantriId}
               onChange={(e) => handleSelectSantri(e.target.value)}
-              className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800"
+              className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 cursor-pointer"
             >
-              {filteredSantri.map((s) => (
+              {santriList.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} - Rek: {s.accountNumber} ({s.dormitory.split(' - ')[0]}) - Saldo: {formatRupiah(s.balance)}
                 </option>
@@ -130,18 +179,21 @@ export const DepositModal: React.FC<DepositModalProps> = ({
 
           {/* Santri Info Preview */}
           {selectedSantri && (
-            <div className="bg-amber-50/60 border border-amber-200/80 rounded-xl p-3.5 flex items-center justify-between text-xs">
+            <div className="bg-gradient-to-r from-amber-50/80 to-emerald-50/80 border border-amber-200/80 rounded-xl p-3.5 flex items-center justify-between text-xs">
               <div>
                 <p className="font-bold text-slate-900">{selectedSantri.name}</p>
                 <p className="text-[11px] text-slate-600">
-                  NISN: {selectedSantri.nisn} • Wali: {selectedSantri.guardianName}
+                  Rekening: <strong className="font-mono text-amber-900">{selectedSantri.accountNumber}</strong> • Wali: {selectedSantri.guardianName}
                 </p>
                 <p className="text-[11px] text-slate-500">{selectedSantri.dormitory}</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wider">Saldo Wadiah Saat Ini</p>
+                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Saldo Wadiah Saat Ini</p>
                 <p className="text-base font-black text-emerald-800 font-mono-numbers">
                   {formatRupiah(selectedSantri.balance)}
+                </p>
+                <p className="text-[10px] text-slate-500 mt-0.5 font-mono-numbers">
+                  Setelah Setor: {formatRupiah(selectedSantri.balance + (amount > 0 ? amount : 0))}
                 </p>
               </div>
             </div>
@@ -190,22 +242,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
               Kanal Penyetoran Titipan
             </label>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => setMethod('BANK_TRANSFER_BSI')}
-                className={`p-2.5 rounded-xl border flex items-center space-x-2 text-left cursor-pointer ${
-                  method === 'BANK_TRANSFER_BSI'
-                    ? 'border-amber-600 bg-amber-50 text-amber-950 font-bold ring-1 ring-amber-600'
-                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <CreditCard className="w-4 h-4 text-emerald-600 shrink-0" />
-                <div>
-                  <p className="font-semibold">Transfer BSI VA</p>
-                  <p className="text-[10px] text-slate-500">Bank Syariah Indonesia</p>
-                </div>
-              </button>
-
+              {/* Sebelah Kiri: Tunai Bendahara */}
               <button
                 type="button"
                 onClick={() => setMethod('CASH')}
@@ -219,6 +256,23 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                 <div>
                   <p className="font-semibold">Tunai Bendahara</p>
                   <p className="text-[10px] text-slate-500">Langsung di Loket Pesantren</p>
+                </div>
+              </button>
+
+              {/* Sebelah Kanan: Transfer Via Bank */}
+              <button
+                type="button"
+                onClick={() => setMethod('BANK_TRANSFER_BSI')}
+                className={`p-2.5 rounded-xl border flex items-center space-x-2 text-left cursor-pointer ${
+                  method === 'BANK_TRANSFER_BSI'
+                    ? 'border-amber-600 bg-amber-50 text-amber-950 font-bold ring-1 ring-amber-600'
+                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <CreditCard className="w-4 h-4 text-emerald-600 shrink-0" />
+                <div>
+                  <p className="font-semibold">Transfer Via Bank</p>
+                  <p className="text-[10px] text-slate-500">Semua Rekening Bank & ATM</p>
                 </div>
               </button>
             </div>

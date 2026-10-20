@@ -25,6 +25,7 @@ import {
   subscribeToTransactions,
   subscribeToProfile,
   saveSantriToCloud,
+  deleteSantriFromCloud,
   updateSantriBalanceInCloud,
   saveTransactionToCloud,
   saveProfileToCloud,
@@ -348,7 +349,7 @@ export default function App() {
       balanceAfter,
       method,
       tellerName: method.includes('BANK') 
-        ? 'Sistem Otomatis (BSI VA)' 
+        ? 'Sistem Otomatis (Transfer Bank)' 
         : (currentUser?.displayName ? `${currentUser.displayName} (Kasir Loket)` : 'Ust. H. Ahmad Fauzi (Kasir Loket)'),
       guardianSenderName: guardianName || santri.guardianName,
       notes: notes || 'Setoran Titipan Uang Saku Santri',
@@ -423,6 +424,40 @@ export default function App() {
     }
   };
 
+  // Update santri data handler (edit)
+  const handleUpdateSantri = (updatedSantri: Santri) => {
+    setSantriList((prev) => prev.map((s) => (s.id === updatedSantri.id ? updatedSantri : s)));
+    if (currentUser) {
+      saveSantriToCloud(updatedSantri).catch((e) => console.error('Cloud update santri error:', e));
+    }
+  };
+
+  // Delete santri handler
+  const handleDeleteSantri = (santriId: string) => {
+    setSantriList((prev) => prev.filter((s) => s.id !== santriId));
+    if (currentUser) {
+      deleteSantriFromCloud(santriId).catch((e) => console.error('Cloud delete santri error:', e));
+    }
+  };
+
+  // Toggle freeze / unfreeze account handler
+  const handleToggleFreezeSantri = (santriId: string, freeze: boolean) => {
+    setSantriList((prev) => {
+      const nextList = prev.map((s) => {
+        if (s.id === santriId) {
+          const nextStatus = freeze ? ('DIBEKUKAN' as const) : ('AKTIF' as const);
+          const updatedSantri: Santri = { ...s, status: nextStatus };
+          if (currentUser) {
+            saveSantriToCloud(updatedSantri).catch((e) => console.error('Cloud freeze toggle error:', e));
+          }
+          return updatedSantri;
+        }
+        return s;
+      });
+      return nextList;
+    });
+  };
+
   // Update profile handler (with cloud sync)
   const handleUpdateProfile = (newProfile: PesantrenProfile) => {
     setPesantrenProfile(newProfile);
@@ -447,8 +482,9 @@ export default function App() {
     }
   };
 
-  // Render Landing Page (Portal Orang Tua Read-Only + Login Pengurus)
-  if (viewMode === 'landing') {
+  // Render Landing Page (Portal Orang Tua Read-Only + Login Bendahara)
+  // Strict Privacy: Hanya bendahara yang telah login melalui username & password yang dapat membuka dashboard
+  if (viewMode === 'landing' || !currentUser) {
     return (
       <LandingPage
         santriList={santriList}
@@ -456,9 +492,12 @@ export default function App() {
         pesantrenProfile={pesantrenProfile}
         currentUser={currentUser}
         isCloudConnected={isCloudConnected}
-        onSignInGoogle={handleSignInGoogle}
         onSignOut={handleSignOut}
-        onEnterDashboard={() => setViewMode('dashboard')}
+        onEnterDashboard={() => {
+          if (currentUser) {
+            setViewMode('dashboard');
+          }
+        }}
         onLoginBendahara={handleLoginBendahara}
       />
     );
@@ -540,6 +579,9 @@ export default function App() {
               transactions={transactions}
               pesantrenProfile={pesantrenProfile}
               onAddSantri={handleAddSantri}
+              onUpdateSantri={handleUpdateSantri}
+              onDeleteSantri={handleDeleteSantri}
+              onToggleFreezeSantri={handleToggleFreezeSantri}
               onOpenTellerForSantri={(id) => {
                 setSelectedSantriId(id);
                 setIsTellerModalOpen(true);

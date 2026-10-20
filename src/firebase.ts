@@ -16,7 +16,8 @@ import {
   setDoc, 
   updateDoc, 
   getDocs, 
-  writeBatch 
+  writeBatch,
+  deleteDoc 
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import { Santri, Transaction, PesantrenProfile } from './types/finance';
@@ -189,6 +190,15 @@ export async function saveSantriToCloud(santri: Santri): Promise<void> {
     await setDoc(doc(db, 'santri', santri.id), santri, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function deleteSantriFromCloud(santriId: string): Promise<void> {
+  const path = `santri/${santriId}`;
+  try {
+    await deleteDoc(doc(db, 'santri', santriId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
 

@@ -4,7 +4,8 @@ import {
   ShieldCheck, 
   Wallet,
   ChevronRight,
-  Eye
+  Eye,
+  LogIn
 } from 'lucide-react';
 import { PesantrenProfile, AuthUser } from '../types/finance';
 import { formatRupiah } from '../utils/accounting';
@@ -20,7 +21,7 @@ interface TopHeaderProps {
   totalActiveSantri: number;
   currentUser: AuthUser | User | null;
   isCloudConnected: boolean;
-  onSignInGoogle: () => void;
+  onSignInGoogle?: () => void;
   onSignOut: () => void;
   onGoToLanding: () => void;
 }
@@ -190,13 +191,11 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             </div>
           ) : (
             <button
-              onClick={onSignInGoogle}
+              onClick={onGoToLanding}
               className="flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer"
             >
-              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                <path d="M12.24 10.285V13.4h6.887C18.2 15.6 15.64 18 12.24 18c-3.315 0-6-2.685-6-6s2.685-6 6-6c1.47 0 2.815.54 3.86 1.425l2.43-2.43C16.88 3.525 14.71 2.7 12.24 2.7 7.07 2.7 2.9 6.87 2.9 12.04s4.17 9.34 9.34 9.34c5.385 0 8.97-3.79 8.97-9.14 0-.615-.06-1.215-.17-1.8H12.24z" />
-              </svg>
-              <span>Login Google</span>
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Login Bendahara</span>
             </button>
           )}
         </div>

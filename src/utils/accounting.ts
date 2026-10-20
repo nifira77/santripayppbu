@@ -385,3 +385,20 @@ export function getRekeningKoran(
     closingBalance: runningBalance,
   };
 }
+
+/**
+ * Format PaymentMethod to user friendly Indonesian label
+ */
+export function formatPaymentMethodLabel(method: string): string {
+  if (!method) return '-';
+  if (method === 'BANK_TRANSFER_BSI' || method === 'BANK_TRANSFER' || method.includes('BANK')) {
+    return 'Transfer Via Bank';
+  }
+  if (method === 'CASH') {
+    return 'Tunai Loket';
+  }
+  if (method === 'QRIS_PESANTREN') {
+    return 'QRIS Pesantren';
+  }
+  return method.replace(/_/g, ' ');
+}

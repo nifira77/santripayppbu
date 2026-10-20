@@ -15,7 +15,8 @@ import { Transaction, Santri, PesantrenProfile } from '../types/finance';
 import { 
   formatRupiah, 
   formatDateIndo, 
-  getTodayDateString 
+  getTodayDateString,
+  formatPaymentMethodLabel
 } from '../utils/accounting';
 
 interface LaporanRekapViewProps {
@@ -505,7 +506,7 @@ export const LaporanRekapView: React.FC<LaporanRekapViewProps> = ({
                         </div>
                       </td>
                       <td className="px-3 py-2 text-slate-600 text-[11px] whitespace-nowrap">
-                        {t.method.replace(/_/g, ' ')}
+                        {formatPaymentMethodLabel(t.method)}
                       </td>
                       <td className={`px-3 py-2 text-right font-mono-numbers font-bold ${
                         t.type === 'DEPOSIT_WADIAH' ? 'text-emerald-700' : 'text-rose-700'
