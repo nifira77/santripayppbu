@@ -3,7 +3,8 @@ import {
   Santri, 
   Transaction, 
   PesantrenProfile, 
-  PaymentMethod 
+  PaymentMethod,
+  AuthUser
 } from './types/finance';
 import { 
   initialSantriList, 
@@ -50,11 +51,22 @@ import { ShieldCheck, RotateCcw } from 'lucide-react';
 const STORAGE_KEY_SANTRI = 'santripay_santri_v1';
 const STORAGE_KEY_TRX = 'santripay_transactions_v1';
 const STORAGE_KEY_PROFILE = 'santripay_profile_v1';
+const STORAGE_KEY_AUTH = 'santripay_auth_bendahara_v1';
 
 export default function App() {
   // Authentication & Cloud Realtime State
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<AuthUser | User | null>(() => {
+    try {
+      const savedAuth = localStorage.getItem(STORAGE_KEY_AUTH);
+      if (savedAuth) return JSON.parse(savedAuth);
+    } catch (e) {
+      console.error('Failed to parse saved auth', e);
+    }
+    return null;
+  });
+  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(() => {
+    return Boolean(localStorage.getItem(STORAGE_KEY_AUTH));
+  });
 
   // Load state from localStorage or initial seeds
   const [santriList, setSantriList] = useState<Santri[]>(() => {
@@ -110,12 +122,24 @@ export default function App() {
     testConnection();
 
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
       if (user) {
+        setCurrentUser(user);
         setIsCloudConnected(true);
         // Seed initial data to cloud if collections are empty
         seedInitialDataToCloud(santriList, transactions, pesantrenProfile);
       } else {
+        // If not Firebase Google user, check if local Bendahara auth exists
+        try {
+          const savedAuth = localStorage.getItem(STORAGE_KEY_AUTH);
+          if (savedAuth) {
+            setCurrentUser(JSON.parse(savedAuth));
+            setIsCloudConnected(true);
+            return;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+        setCurrentUser(null);
         setIsCloudConnected(false);
       }
     });
@@ -204,10 +228,22 @@ export default function App() {
     return el.status === 'ALREADY_TAKEN';
   }).length;
 
-  // Google Login / Logout handlers
+  // Bendahara Credential & Google Login / Logout handlers
+  const handleLoginBendahara = (user: AuthUser) => {
+    setCurrentUser(user);
+    setIsCloudConnected(true);
+    try {
+      localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(user));
+    } catch (e) {
+      console.error('Failed to save auth to storage', e);
+    }
+    setViewMode('dashboard');
+  };
+
   const handleSignInGoogle = async () => {
     try {
       await signInWithGoogle();
+      setViewMode('dashboard');
     } catch (error) {
       console.error('Gagal login Google:', error);
     }
@@ -216,11 +252,13 @@ export default function App() {
   const handleSignOut = async () => {
     try {
       await logOut();
-      setIsCloudConnected(false);
-      setViewMode('landing');
     } catch (error) {
       console.error('Gagal keluar:', error);
     }
+    localStorage.removeItem(STORAGE_KEY_AUTH);
+    setCurrentUser(null);
+    setIsCloudConnected(false);
+    setViewMode('landing');
   };
 
   // Process Withdrawal (Jajan 10.000 max, 1x a day)
@@ -421,6 +459,7 @@ export default function App() {
         onSignInGoogle={handleSignInGoogle}
         onSignOut={handleSignOut}
         onEnterDashboard={() => setViewMode('dashboard')}
+        onLoginBendahara={handleLoginBendahara}
       />
     );
   }

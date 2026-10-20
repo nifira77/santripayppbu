@@ -6,7 +6,7 @@ import {
   ChevronRight,
   Eye
 } from 'lucide-react';
-import { PesantrenProfile } from '../types/finance';
+import { PesantrenProfile, AuthUser } from '../types/finance';
 import { formatRupiah } from '../utils/accounting';
 
 import { User } from 'firebase/auth';
@@ -18,7 +18,7 @@ interface TopHeaderProps {
   totalWadiah: number;
   santriAlreadyTakenCount: number;
   totalActiveSantri: number;
-  currentUser: User | null;
+  currentUser: AuthUser | User | null;
   isCloudConnected: boolean;
   onSignInGoogle: () => void;
   onSignOut: () => void;
