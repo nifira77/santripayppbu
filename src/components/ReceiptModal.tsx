@@ -27,14 +27,28 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between no-print">
           <div className="flex items-center space-x-2">
             <CheckCircle className="w-5 h-5 text-emerald-400" />
-            <span className="font-bold text-sm">Bukti Transaksi Syariah</span>
+            <div>
+              <span className="font-bold text-sm block leading-tight">Bukti Transaksi Syariah</span>
+              <span className="text-[10px] text-emerald-400/90 font-medium">Transaksi Berhasil Dicatat</span>
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={onClose}
+              className="flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-lg shadow-sm transition-all cursor-pointer"
+              title="Selesaikan transaksi ini dan kembali ke loket"
+            >
+              <CheckCircle className="w-3.5 h-3.5" />
+              <span>Selesai</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-white transition-colors cursor-pointer p-1"
+              title="Tutup"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Printable Thermal Receipt Container */}
@@ -174,24 +188,25 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           </div>
         </div>
 
-        {/* Modal Actions */}
-        <div className="p-4 bg-slate-100 border-t border-slate-200 flex items-center justify-between no-print">
+        {/* Modal Actions: Menu Selesai & Cetak Struk */}
+        <div className="p-4 bg-slate-100 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
           <p className="text-xs text-slate-500">
-            Klik Cetak untuk mencetak ke printer struk atau kertas A4.
+            Klik <strong>Cetak Struk</strong> untuk printer fisik, atau klik <strong>Selesai</strong> untuk mengakhiri transaksi.
           </p>
-          <div className="flex space-x-2">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
-            >
-              Tutup
-            </button>
+          <div className="flex items-center space-x-2 shrink-0 self-end sm:self-auto">
             <button
               onClick={handlePrint}
-              className="flex items-center space-x-1.5 px-4 py-2 text-xs font-bold bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white rounded-lg shadow-md transition-all cursor-pointer"
+              className="flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-white rounded-xl shadow-xs transition-all cursor-pointer"
             >
-              <Printer className="w-4 h-4" />
+              <Printer className="w-4 h-4 text-emerald-400" />
               <span>Cetak Struk</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="flex items-center space-x-2 px-5 py-2 text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white rounded-xl shadow-md shadow-emerald-950/20 transition-all cursor-pointer ring-2 ring-emerald-500/30"
+            >
+              <CheckCircle className="w-4 h-4 text-white" />
+              <span>Selesai Transaksi</span>
             </button>
           </div>
         </div>

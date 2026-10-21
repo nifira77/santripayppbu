@@ -14,6 +14,7 @@ export const defaultPesantrenProfile: PesantrenProfile = {
   treasuryNIP: "NIP. 19840612.201001.1.003",
   mudir: "K.H. Muhammad Syukron Ma'mun, Lc., M.A.",
   defaultDailyLimit: 10000, // Rp 10.000
+  motto: "Yarfa'ullahu Diini Amanu Mingkum Waddini Utulngilmu darojat",
 };
 
 export const defaultCOA: AccountCOA[] = [

@@ -83,6 +83,7 @@ export interface PesantrenProfile {
   mudir: string;          // Pengasuh / Pimpinan Pondok
   defaultDailyLimit: number; // 10000
   logoUrl?: string;       // Custom uploaded logo data URL
+  motto?: string;         // Motto pesantren
 }
 
 export interface NeracaData {

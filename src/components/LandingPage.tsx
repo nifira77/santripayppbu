@@ -204,9 +204,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   Wadiah Online
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 truncate max-w-[200px] sm:max-w-md">
-                {pesantrenProfile.formalName}
-              </p>
+              <div className="flex items-center space-x-2">
+                <p className="text-[11px] text-slate-400 truncate max-w-[180px] sm:max-w-xs">
+                  {pesantrenProfile.formalName}
+                </p>
+                <span className="hidden lg:inline-block text-[10px] font-serif italic text-amber-300 font-bold border-l border-slate-700 pl-2 text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-400">
+                  &ldquo;Yarfa&apos;ullahu Diini Amanu Mingkum Waddini Utulngilmu darojat&rdquo;
+                </span>
+              </div>
             </div>
           </div>
 
@@ -233,6 +238,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
             Transparansi Uang Jajan Santri & Loket Kasir Syariah
           </h1>
+
+          {/* Motto Pesantren dengan Warna Keemasan (Golden Font) */}
+          <div className="py-2 flex flex-col items-center justify-center">
+            <div className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-500/25 to-amber-500/20 border-2 border-amber-400/70 shadow-lg shadow-amber-950/60 backdrop-blur-xs">
+              <Sparkles className="w-4 h-4 text-amber-300 animate-pulse shrink-0" />
+              <span className="text-xs sm:text-base md:text-lg font-serif italic font-extrabold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-amber-300 to-yellow-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-center">
+                &ldquo;Yarfa&apos;ullahu Diini Amanu Mingkum Waddini Utulngilmu darojat&rdquo;
+              </span>
+              <Sparkles className="w-4 h-4 text-amber-300 animate-pulse shrink-0" />
+            </div>
+            <p className="text-[10px] sm:text-[11px] font-bold text-amber-400/90 tracking-widest uppercase mt-1.5 flex items-center gap-1">
+              <span>Motto Pesantren</span>
+            </p>
+          </div>
+
           <p className="text-slate-400 text-xs sm:text-sm max-w-2xl mx-auto">
             Orang tua dapat memantau penarikan jajan dan sisa saldo anak secara mandiri (Mode Baca). 
             Pengurus mengelola kasir loket dengan batasan disiplin maksimal Rp 10.000 / hari.
@@ -789,17 +809,34 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="bg-gradient-to-b from-slate-800/95 to-slate-850/95 backdrop-blur-md rounded-2xl p-6 sm:p-7 border border-slate-700/80 shadow-2xl space-y-6">
               
               {/* Header Box */}
-              <div className="space-y-1.5 pb-4 border-b border-slate-700/80">
-                <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold tracking-wider uppercase">
-                  <Lock className="w-3 h-3 text-emerald-400" />
-                  <span>Akses Terbatas • Khusus Bendahara</span>
+              <div className="space-y-2.5 pb-4 border-b border-slate-700/80">
+                <div className="flex items-center justify-between">
+                  <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold tracking-wider uppercase">
+                    <Lock className="w-3 h-3 text-emerald-400" />
+                    <span>Akses Terbatas • Khusus Bendahara</span>
+                  </div>
                 </div>
-                <h2 className="text-xl font-black text-white tracking-tight">
-                  Login Bendahara
-                </h2>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Masukkan kredensial username dan password untuk mengakses loket kasir santri dan pembukuan syariah.
-                </p>
+
+                {/* Motto Pesantren Warna Tulisan Keemasan */}
+                <div className="p-3 rounded-xl bg-gradient-to-r from-amber-950/70 via-slate-900 to-amber-950/70 border-2 border-amber-400/50 text-center space-y-1 shadow-md">
+                  <div className="flex items-center justify-center space-x-1.5 text-amber-300 text-[10px] font-extrabold tracking-widest uppercase">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                    <span>Motto Pesantren</span>
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                  </div>
+                  <p className="text-xs sm:text-sm font-serif italic font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-amber-300 to-yellow-400 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] leading-relaxed">
+                    &ldquo;Yarfa&apos;ullahu Diini Amanu Mingkum Waddini Utulngilmu darojat&rdquo;
+                  </p>
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-black text-white tracking-tight">
+                    Login Bendahara
+                  </h2>
+                  <p className="text-xs text-slate-400 leading-relaxed mt-0.5">
+                    Masukkan kredensial username dan password untuk mengakses loket kasir santri dan pembukuan syariah.
+                  </p>
+                </div>
               </div>
 
               {/* Login State: Authenticated Session vs Clean Form */}

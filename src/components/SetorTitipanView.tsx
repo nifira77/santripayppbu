@@ -8,6 +8,7 @@ import {
   HeartHandshake, 
   ArrowRight, 
   CheckCircle2, 
+  CheckCircle,
   Clock, 
   UserCheck, 
   X, 
@@ -107,9 +108,13 @@ export const SetorTitipanView: React.FC<SetorTitipanViewProps> = ({
 
   const quickAmounts = [100000, 200000, 300000, 500000, 1000000];
 
+  const [lastFinishedTrx, setLastFinishedTrx] = useState<{ amount: number; santriName: string } | null>(null);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSantri || amount <= 0) return;
+    const currentName = selectedSantri.name;
+    const currentAmt = amount;
     onProcessDeposit(
       selectedSantri.id,
       amount,
@@ -117,10 +122,48 @@ export const SetorTitipanView: React.FC<SetorTitipanViewProps> = ({
       guardianSenderName.trim() || selectedSantri.guardianName,
       notes.trim() || 'Titipan uang saku santri'
     );
+    setLastFinishedTrx({ amount: currentAmt, santriName: currentName });
+  };
+
+  const handleFinishTransaction = () => {
+    setLastFinishedTrx(null);
+    setSearchQuery('');
+    setAmount(300000);
+    setNotes('Titipan uang saku santri');
   };
 
   return (
     <div className="space-y-6">
+      {/* Menu Selesai / Notifikasi Transaksi Berhasil */}
+      {lastFinishedTrx && (
+        <div className="bg-emerald-50 border-2 border-emerald-500 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md no-print animate-fade-in">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <CheckCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-emerald-950 flex items-center gap-1.5">
+                <span>Setoran Titipan Berhasil Dibukukan</span>
+                <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-200 text-emerald-900 font-mono font-bold">
+                  +{formatRupiah(lastFinishedTrx.amount)}
+                </span>
+              </p>
+              <p className="text-xs text-emerald-800">
+                Titipan untuk santri <strong>{lastFinishedTrx.santriName}</strong> telah tercatat pada Jurnal Umum & Rekening Koran.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleFinishTransaction}
+            className="flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer shrink-0"
+          >
+            <CheckCircle className="w-4 h-4" />
+            <span>Menu Selesai (Transaksi Baru)</span>
+          </button>
+        </div>
+      )}
+
       {/* Top Description Banner */}
       <div className="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div className="flex items-center space-x-3.5">
