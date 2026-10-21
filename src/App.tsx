@@ -150,10 +150,8 @@ export default function App() {
     };
   }, []);
 
-  // Real-time Firestore synchronizer when user is logged in
+  // Real-time Firestore synchronizer (active across the entire application)
   useEffect(() => {
-    if (!currentUser) return;
-
     setIsCloudConnected(true);
 
     const unsubSantri = subscribeToSantri(
@@ -170,7 +168,18 @@ export default function App() {
     const unsubTrx = subscribeToTransactions(
       (cloudTrx) => {
         if (cloudTrx && cloudTrx.length > 0) {
-          setTransactions(cloudTrx);
+          setTransactions((localTrx) => {
+            // Preserve any pending local transactions that might not yet have reflected in cloud snapshot
+            const cloudIds = new Set(cloudTrx.map((t) => t.id));
+            const pendingLocal = localTrx.filter((t) => !cloudIds.has(t.id));
+            const merged = [...pendingLocal, ...cloudTrx];
+            merged.sort((a, b) => {
+              const dComp = b.date.localeCompare(a.date);
+              if (dComp !== 0) return dComp;
+              return (b.time || '').localeCompare(a.time || '');
+            });
+            return merged;
+          });
         }
       },
       (err) => {
@@ -194,7 +203,7 @@ export default function App() {
       unsubTrx();
       unsubProfile();
     };
-  }, [currentUser]);
+  }, []);
 
   // Sync to localStorage as offline cache
   useEffect(() => {
@@ -296,24 +305,24 @@ export default function App() {
       category: 'Uang Jajan Harian',
     };
 
-    // Update santri balance
+    const updatedSantri: Santri = { ...santri, balance: balanceAfter };
+
+    // Update santri balance in local state
     setSantriList((prev) =>
-      prev.map((s) => (s.id === santriId ? { ...s, balance: balanceAfter } : s))
+      prev.map((s) => (s.id === santriId ? updatedSantri : s))
     );
 
-    // Append transaction
+    // Append transaction in local state
     setTransactions((prev) => [newTrx, ...prev]);
 
     // Save to Cloud Firestore
-    if (currentUser) {
-      saveTransactionToCloud(newTrx).catch((e) => console.error('Cloud save trx error:', e));
-      updateSantriBalanceInCloud(santri.id, balanceAfter).catch((e) => console.error('Cloud balance error:', e));
-    }
+    saveTransactionToCloud(newTrx).catch((e) => console.error('Cloud save trx error:', e));
+    saveSantriToCloud(updatedSantri).catch((e) => console.error('Cloud balance error:', e));
 
     // Close teller modal and show receipt
     setIsTellerModalOpen(false);
     setReceiptTrx(newTrx);
-    setReceiptSantri({ ...santri, balance: balanceAfter });
+    setReceiptSantri(updatedSantri);
   };
 
   // Quick dispense from cards (1 click)
@@ -336,7 +345,7 @@ export default function App() {
     const balanceAfter = balanceBefore + amount;
 
     const newTrx: Transaction = {
-      id: `trx-${Date.now()}`,
+      id: `trx-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
       transactionNo: `TRX-WDH-${todayStr.replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`,
       date: todayStr,
       time: getCurrentTimeString(),
@@ -356,21 +365,23 @@ export default function App() {
       category: 'Setoran Titipan Wali',
     };
 
+    const updatedSantri: Santri = { ...santri, balance: balanceAfter };
+
+    // Update santri balance in local state
     setSantriList((prev) =>
-      prev.map((s) => (s.id === santriId ? { ...s, balance: balanceAfter } : s))
+      prev.map((s) => (s.id === santriId ? updatedSantri : s))
     );
 
+    // Append transaction in local state
     setTransactions((prev) => [newTrx, ...prev]);
 
     // Save to Cloud Firestore
-    if (currentUser) {
-      saveTransactionToCloud(newTrx).catch((e) => console.error('Cloud save trx error:', e));
-      updateSantriBalanceInCloud(santri.id, balanceAfter).catch((e) => console.error('Cloud balance error:', e));
-    }
+    saveTransactionToCloud(newTrx).catch((e) => console.error('Cloud save trx error:', e));
+    saveSantriToCloud(updatedSantri).catch((e) => console.error('Cloud balance error:', e));
 
     setIsDepositModalOpen(false);
     setReceiptTrx(newTrx);
-    setReceiptSantri({ ...santri, balance: balanceAfter });
+    setReceiptSantri(updatedSantri);
   };
 
   // Add Santri Handler

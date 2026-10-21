@@ -17,7 +17,7 @@
         "guardianAddress": { "type": "string" },
         "balance": { "type": "number" },
         "dailyAllowanceLimit": { "type": "number" },
-        "status": { "type": "string", "enum": ["AKTIF", "CUTI", "ALUMNI"] },
+        "status": { "type": "string", "enum": ["AKTIF", "CUTI", "ALUMNI", "DIBEKUKAN", "NONAKTIF"] },
         "avatarSeed": { "type": "string" },
         "createdAt": { "type": "string" }
       },

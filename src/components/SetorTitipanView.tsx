@@ -265,7 +265,8 @@ export const SetorTitipanView: React.FC<SetorTitipanViewProps> = ({
                         return (
                           <div
                             key={s.id}
-                            className={`p-2.5 rounded-xl border flex items-center justify-between transition-all ${
+                            onClick={() => handleSelectSantri(s)}
+                            className={`p-2.5 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
                               isSelected
                                 ? 'bg-amber-100/70 border-amber-500 ring-1 ring-amber-500 text-slate-900'
                                 : 'bg-white hover:bg-slate-100/80 border-slate-200 text-slate-800'
