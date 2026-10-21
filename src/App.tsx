@@ -43,6 +43,8 @@ import { LaporanRekapView } from './components/LaporanRekapView';
 import { SantriManagementView } from './components/SantriManagementView';
 import { JurnalUmumView } from './components/JurnalUmumView';
 import { ProfilPesantrenView } from './components/ProfilPesantrenView';
+import { BukuKasUmumView } from './components/BukuKasUmumView';
+import { BukuKasBesarView } from './components/BukuKasBesarView';
 import { LandingPage } from './components/LandingPage';
 import { QuickTellerModal } from './components/QuickTellerModal';
 import { DepositModal } from './components/DepositModal';
@@ -121,13 +123,13 @@ export default function App() {
   // Initialize Firebase connection & Auth listener
   useEffect(() => {
     testConnection();
+    // Seed initial data to cloud if collections are empty (for both Google and Bendahara local logins)
+    seedInitialDataToCloud(santriList, transactions, pesantrenProfile);
 
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
         setCurrentUser(user);
         setIsCloudConnected(true);
-        // Seed initial data to cloud if collections are empty
-        seedInitialDataToCloud(santriList, transactions, pesantrenProfile);
       } else {
         // If not Firebase Google user, check if local Bendahara auth exists
         try {
@@ -279,7 +281,7 @@ export default function App() {
     // Strict validation
     const eligibility = checkDailyAllowanceEligibility(santri, transactions, todayStr);
     if (!eligibility.canWithdraw) {
-      alert(`Pencairan Ditolak: ${eligibility.reason}`);
+      console.warn(`Pencairan Ditolak: ${eligibility.reason}`);
       return;
     }
 
@@ -288,7 +290,7 @@ export default function App() {
     const balanceAfter = balanceBefore - withdrawAmount;
 
     const newTrx: Transaction = {
-      id: `trx-${Date.now()}`,
+      id: `trx-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
       transactionNo: `TRX-JJN-${todayStr.replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`,
       date: todayStr,
       time: getCurrentTimeString(),
@@ -307,13 +309,27 @@ export default function App() {
 
     const updatedSantri: Santri = { ...santri, balance: balanceAfter };
 
-    // Update santri balance in local state
-    setSantriList((prev) =>
-      prev.map((s) => (s.id === santriId ? updatedSantri : s))
-    );
+    // Update santri balance in local state and offline storage
+    setSantriList((prev) => {
+      const next = prev.map((s) => (s.id === santriId ? updatedSantri : s));
+      try {
+        localStorage.setItem(STORAGE_KEY_SANTRI, JSON.stringify(next));
+      } catch (e) {
+        console.error('Storage error:', e);
+      }
+      return next;
+    });
 
-    // Append transaction in local state
-    setTransactions((prev) => [newTrx, ...prev]);
+    // Append transaction in local state and offline storage
+    setTransactions((prev) => {
+      const next = [newTrx, ...prev];
+      try {
+        localStorage.setItem(STORAGE_KEY_TRX, JSON.stringify(next));
+      } catch (e) {
+        console.error('Storage error:', e);
+      }
+      return next;
+    });
 
     // Save to Cloud Firestore
     saveTransactionToCloud(newTrx).catch((e) => console.error('Cloud save trx error:', e));
@@ -367,13 +383,27 @@ export default function App() {
 
     const updatedSantri: Santri = { ...santri, balance: balanceAfter };
 
-    // Update santri balance in local state
-    setSantriList((prev) =>
-      prev.map((s) => (s.id === santriId ? updatedSantri : s))
-    );
+    // Update santri balance in local state and offline storage
+    setSantriList((prev) => {
+      const next = prev.map((s) => (s.id === santriId ? updatedSantri : s));
+      try {
+        localStorage.setItem(STORAGE_KEY_SANTRI, JSON.stringify(next));
+      } catch (e) {
+        console.error('Storage error:', e);
+      }
+      return next;
+    });
 
-    // Append transaction in local state
-    setTransactions((prev) => [newTrx, ...prev]);
+    // Append transaction in local state and offline storage
+    setTransactions((prev) => {
+      const next = [newTrx, ...prev];
+      try {
+        localStorage.setItem(STORAGE_KEY_TRX, JSON.stringify(next));
+      } catch (e) {
+        console.error('Storage error:', e);
+      }
+      return next;
+    });
 
     // Save to Cloud Firestore
     saveTransactionToCloud(newTrx).catch((e) => console.error('Cloud save trx error:', e));
@@ -608,7 +638,25 @@ export default function App() {
             />
           )}
 
-          {/* LAPORAN KEUANGAN - Sub-menu 1: Neraca (Skontro & Staffel) */}
+          {/* BUKU KAS - Sub-menu 1: Buku Kas Umum (BKU) */}
+          {activeTab === 'bku' && (
+            <BukuKasUmumView
+              transactions={transactions}
+              santriList={santriList}
+              pesantrenProfile={pesantrenProfile}
+            />
+          )}
+
+          {/* BUKU KAS - Sub-menu 2: Buku Kas Besar */}
+          {activeTab === 'buku-kas-besar' && (
+            <BukuKasBesarView
+              transactions={transactions}
+              santriList={santriList}
+              pesantrenProfile={pesantrenProfile}
+            />
+          )}
+
+          {/* LAPORAN KEUANGAN - Sub-menu 1: Neraca (Skontro & Staffel/Druffel) */}
           {activeTab === 'neraca' && (
             <NeracaView
               santriList={santriList}

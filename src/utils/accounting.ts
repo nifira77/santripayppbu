@@ -229,16 +229,22 @@ export function calculateNeraca(
   let totalTitipanBank = 0;
   let totalTitipanTunai = 0;
   let totalJajanDitarik = 0;
+  let countJajanDitarik = 0;
+  let totalSetoranTitipan = 0;
+  let countSetoranTitipan = 0;
 
   relevantTrx.forEach((t) => {
     if (t.type === 'DEPOSIT_WADIAH') {
+      totalSetoranTitipan += t.amount;
+      countSetoranTitipan++;
       if (t.method.includes('BANK')) {
         totalTitipanBank += t.amount;
       } else {
         totalTitipanTunai += t.amount;
       }
-    } else if (t.type === 'WITHDRAWAL_JAJAN') {
+    } else if (t.type === 'WITHDRAWAL_JAJAN' || t.type === 'SPECIAL_DISBURSEMENT') {
       totalJajanDitarik += t.amount;
+      countJajanDitarik++;
     }
   });
 
@@ -276,6 +282,10 @@ export function calculateNeraca(
     isBalanced: discrepancy === 0,
     discrepancy,
     totalSantriWithBalance: santriWithBalance,
+    totalPenarikanJajan: totalJajanDitarik,
+    countPenarikanJajan: countJajanDitarik,
+    totalSetoranTitipan,
+    countSetoranTitipan,
   };
 }
 

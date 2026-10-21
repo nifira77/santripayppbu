@@ -55,8 +55,12 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         return { parent: 'Loket Bendahara', title: 'Setor Titipan Wali', badge: 'Top Up Wadiah' };
       case 'santri':
         return { parent: 'Menu Utama', title: 'Data Santri & Rekening Wadiah', badge: `${totalActiveSantri} Santri Terdaftar` };
+      case 'bku':
+        return { parent: 'Buku Kas', title: 'Buku Kas Umum (BKU)', badge: 'Arus Kas & Saldo Berjalan' };
+      case 'buku-kas-besar':
+        return { parent: 'Buku Kas', title: 'Buku Kas Besar (Ledger)', badge: 'Buku Besar Kas & Bank' };
       case 'neraca':
-        return { parent: 'Laporan Keuangan', title: 'Neraca (Skontro & Staffel)', badge: 'PSAK Syariah 101' };
+        return { parent: 'Laporan Keuangan', title: 'Neraca (Skontro & Staffel/Druffel)', badge: 'PSAK Syariah 101' };
       case 'rekening-koran':
         return { parent: 'Laporan Keuangan', title: 'Rekening Koran Wadiah', badge: 'Bank Statement' };
       case 'rekap-tanggal':

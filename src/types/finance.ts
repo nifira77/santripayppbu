@@ -100,6 +100,10 @@ export interface NeracaData {
   isBalanced: boolean;
   discrepancy: number;
   totalSantriWithBalance: number;
+  totalPenarikanJajan: number;      // Total akumulasi penarikan uang jajan santri
+  countPenarikanJajan: number;      // Jumlah transaksi penarikan jajan santri
+  totalSetoranTitipan: number;      // Total akumulasi titipan uang saku masuk dari wali
+  countSetoranTitipan: number;      // Jumlah transaksi setoran titipan
 }
 
 export interface AuthUser {

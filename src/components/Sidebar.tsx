@@ -16,7 +16,9 @@ import {
   X,
   Scale,
   Landmark,
-  Eye
+  Eye,
+  BookMarked,
+  BookOpenCheck
 } from 'lucide-react';
 import { PesantrenProfile } from '../types/finance';
 import { formatRupiah } from '../utils/accounting';
@@ -50,12 +52,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const loketBendaharaTabs = ['dashboard', 'loket-jajan', 'setor-titipan'];
   const isLoketBendaharaActive = loketBendaharaTabs.includes(activeTab);
 
+  // Buku Kas submenu keys: 'bku' (Buku Kas Umum) and 'buku-kas-besar' (Buku Kas Besar)
+  const bukuKasTabs = ['bku', 'buku-kas-besar'];
+  const isBukuKasActive = bukuKasTabs.includes(activeTab);
+
   // Financial reports submenu keys
   const financialReportTabs = ['neraca', 'rekening-koran', 'rekap-tanggal', 'jurnal'];
   const isFinancialTabActive = financialReportTabs.includes(activeTab);
 
-  // Accordion state for both parent menus
+  // Accordion state for parent menus
   const [isLoketOpen, setIsLoketOpen] = useState(true);
+  const [isBukuKasOpen, setIsBukuKasOpen] = useState(true);
   const [isLaporanOpen, setIsLaporanOpen] = useState(true);
 
   // Auto-expand if active tab changes
@@ -64,6 +71,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       setIsLoketOpen(true);
     }
   }, [isLoketBendaharaActive]);
+
+  useEffect(() => {
+    if (isBukuKasActive) {
+      setIsBukuKasOpen(true);
+    }
+  }, [isBukuKasActive]);
 
   useEffect(() => {
     if (isFinancialTabActive) {
@@ -93,10 +106,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
+  const bukuKasSubMenuItems = [
+    {
+      id: 'bku',
+      label: 'Buku Kas Umum (BKU)',
+      icon: BookMarked,
+      desc: 'Arus kas harian & saldo berjalan',
+      badge: 'BKU',
+    },
+    {
+      id: 'buku-kas-besar',
+      label: 'Buku Kas Besar',
+      icon: BookOpenCheck,
+      desc: 'Buku besar akun kas tunai & bank',
+      badge: 'Ledger',
+    },
+  ];
+
   const laporanSubMenuItems = [
     {
       id: 'neraca',
-      label: 'Neraca (Skontro & Staffel)',
+      label: 'Neraca (Skontro & Staffel/Druffel)',
       icon: Scale,
     },
     {
@@ -279,6 +309,69 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {totalActiveSantri}
               </span>
             </button>
+
+            {/* PARENT MENU: BUKU KAS (ACCORDION) - DIATAS LAPORAN KEUANGAN */}
+            <div className="pt-2">
+              <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Buku Kas
+              </p>
+
+              <button
+                onClick={() => setIsBukuKasOpen(!isBukuKasOpen)}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  isBukuKasActive
+                    ? 'bg-slate-800 text-emerald-300 border border-emerald-500/30'
+                    : 'text-slate-200 hover:bg-slate-800/70 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center space-x-2.5">
+                  <BookMarked className={`w-4 h-4 ${isBukuKasActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                  <span>Buku Kas</span>
+                </div>
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-[10px] px-1.5 py-0.2 bg-emerald-950 text-emerald-400 rounded-md border border-emerald-800/60 font-mono">
+                    2 Buku
+                  </span>
+                  {isBukuKasOpen ? (
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  )}
+                </div>
+              </button>
+
+              {/* Sub-menu Buku Kas */}
+              {isBukuKasOpen && (
+                <div className="ml-3 pl-3 my-1.5 border-l-2 border-emerald-900/60 space-y-1">
+                  {bukuKasSubMenuItems.map((sub) => {
+                    const Icon = sub.icon;
+                    const isActive = activeTab === sub.id;
+
+                    return (
+                      <button
+                        key={sub.id}
+                        onClick={() => handleNavClick(sub.id)}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all flex items-center justify-between cursor-pointer ${
+                          isActive
+                            ? 'bg-emerald-600/90 text-white font-bold shadow-xs'
+                            : 'text-slate-300 hover:bg-slate-800/70 hover:text-white font-medium'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-emerald-400/90'}`} />
+                          <span>{sub.label}</span>
+                        </div>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${
+                          isActive ? 'bg-emerald-800 text-white' : 'bg-slate-800 text-slate-400'
+                        }`}>
+                          {sub.badge}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* PARENT MENU 2: LAPORAN KEUANGAN (ACCORDION) */}
             <div className="pt-2">

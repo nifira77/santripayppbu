@@ -10,7 +10,11 @@ import {
   ShieldCheck,
   Info,
   Wallet,
-  ArrowRightLeft
+  ArrowRightLeft,
+  HandCoins,
+  ArrowDownRight,
+  ArrowUpRight,
+  TrendingDown
 } from 'lucide-react';
 import { Santri, Transaction, PesantrenProfile } from '../types/finance';
 import { 
@@ -69,7 +73,7 @@ export const NeracaView: React.FC<NeracaViewProps> = ({
             />
           </div>
 
-          {/* Toggle Skontro vs Staffel */}
+          {/* Toggle Skontro vs Staffel / Druffel */}
           <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
             <button
               onClick={() => setFormatType('SKONTRO')}
@@ -91,7 +95,7 @@ export const NeracaView: React.FC<NeracaViewProps> = ({
               }`}
             >
               <Rows className="w-3.5 h-3.5" />
-              <span>Bentuk Staffel (Vertikal)</span>
+              <span>Bentuk Staffel / Druffel (Vertikal)</span>
             </button>
           </div>
 
@@ -159,7 +163,7 @@ export const NeracaView: React.FC<NeracaViewProps> = ({
           </p>
           <div className="mt-3 pt-2 border-t border-slate-200 flex flex-col items-center">
             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 font-sans">
-              LAPORAN NERACA KAS TITIPAN SANTRI ({formatType})
+              LAPORAN NERACA KAS TITIPAN SANTRI ({formatType === 'STAFFEL' ? 'STAFFEL / DRUFFEL' : 'SKONTRO'})
             </h2>
             <p className="text-xs text-slate-500 font-sans font-medium">
               Per {formatDateIndo(neraca.asOfDate)} (Dinyatakan dalam Rupiah)
@@ -167,6 +171,66 @@ export const NeracaView: React.FC<NeracaViewProps> = ({
             <span className="mt-1 text-[10px] bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-full font-sans font-bold border border-emerald-300">
               Struktur Khusus: Arus Titipan Orang Tua & Penarikan Jajan Santri
             </span>
+          </div>
+        </div>
+
+        {/* Ringkasan Akumulasi Realisasi Titipan & Total Penarikan Uang Jajan Santri */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 font-sans">
+          {/* Card 1: Total Titipan Masuk */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+            <div className="flex items-center justify-between text-slate-500 text-[11px] font-semibold">
+              <span className="flex items-center gap-1.5">
+                <ArrowDownRight className="w-4 h-4 text-emerald-600" />
+                <span>Total Titipan Masuk (Wali)</span>
+              </span>
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-mono">
+                {neraca.countSetoranTitipan} Transaksi
+              </span>
+            </div>
+            <p className="text-base font-black text-slate-900 font-mono-numbers mt-1.5">
+              {formatRupiah(neraca.totalSetoranTitipan)}
+            </p>
+            <p className="text-[10px] text-slate-500 mt-0.5">
+              Akumulasi setoran uang saku via loket tunai & bank
+            </p>
+          </div>
+
+          {/* Card 2: Total Penarikan Uang Jajan Santri (Highlighted) */}
+          <div className="bg-amber-50/80 border-2 border-amber-400 rounded-xl p-3.5 shadow-xs">
+            <div className="flex items-center justify-between text-amber-950 text-[11px] font-bold">
+              <span className="flex items-center gap-1.5">
+                <HandCoins className="w-4 h-4 text-amber-700" />
+                <span>Total Penarikan Uang Jajan</span>
+              </span>
+              <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded font-mono font-bold">
+                {neraca.countPenarikanJajan}x Pencairan
+              </span>
+            </div>
+            <p className="text-base font-black text-amber-900 font-mono-numbers mt-1.5">
+              {formatRupiah(neraca.totalPenarikanJajan)}
+            </p>
+            <p className="text-[10px] text-amber-800 mt-0.5 font-medium">
+              Uang jajan harian yang telah ditarik santri di loket
+            </p>
+          </div>
+
+          {/* Card 3: Sisa Kas Titipan Berjalan */}
+          <div className="bg-emerald-50/70 border border-emerald-300 rounded-xl p-3.5">
+            <div className="flex items-center justify-between text-emerald-900 text-[11px] font-semibold">
+              <span className="flex items-center gap-1.5">
+                <Wallet className="w-4 h-4 text-emerald-700" />
+                <span>Sisa Saldo Kas Titipan</span>
+              </span>
+              <span className="text-[10px] bg-emerald-200 text-emerald-900 px-1.5 py-0.2 rounded font-mono font-bold">
+                {neraca.totalSantriWithBalance} Santri Aktif
+              </span>
+            </div>
+            <p className="text-base font-black text-emerald-950 font-mono-numbers mt-1.5">
+              {formatRupiah(neraca.pasiva.totalPasiva)}
+            </p>
+            <p className="text-[10px] text-emerald-700 mt-0.5">
+              Total hak saldo santri yang siap dicairkan jajan
+            </p>
           </div>
         </div>
 
@@ -216,6 +280,20 @@ export const NeracaView: React.FC<NeracaViewProps> = ({
                           {formatRupiah(neraca.aktiva.kasBankTitipan)}
                         </span>
                       </div>
+
+                      {/* Ringkasan Realisasi Jajan di Sisi Kas */}
+                      <div className="flex justify-between items-center text-slate-700 bg-amber-50/60 p-2.5 rounded-lg border border-amber-200">
+                        <div className="flex items-center space-x-2">
+                          <HandCoins className="w-4 h-4 text-amber-700 shrink-0" />
+                          <div>
+                            <p className="font-bold text-amber-950 text-xs">Total Penarikan Uang Jajan Santri</p>
+                            <p className="text-[10px] text-amber-800">Telah dicairkan secara tunai di loket bendahara</p>
+                          </div>
+                        </div>
+                        <span className="font-black text-amber-900 font-mono-numbers text-xs">
+                          {formatRupiah(neraca.totalPenarikanJajan)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -263,6 +341,25 @@ export const NeracaView: React.FC<NeracaViewProps> = ({
                         <span className="font-black text-emerald-900 font-mono-numbers text-sm">
                           {formatRupiah(neraca.pasiva.kewajibanTitipanWadiah)}
                         </span>
+                      </div>
+
+                      {/* Rincian Arus Wadiah: Masuk vs Ditarik Jajan Santri */}
+                      <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-1.5 text-[11px]">
+                        <div className="flex justify-between text-slate-600">
+                          <span>Akumulasi Titipan Diterima:</span>
+                          <span className="font-semibold font-mono-numbers">{formatRupiah(neraca.totalSetoranTitipan)}</span>
+                        </div>
+                        <div className="flex justify-between text-amber-950 font-bold bg-amber-100/80 px-2 py-1.5 rounded border border-amber-300">
+                          <span className="flex items-center gap-1.5">
+                            <HandCoins className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Total Penarikan Uang Jajan Santri:</span>
+                          </span>
+                          <span className="font-mono-numbers text-rose-700">- {formatRupiah(neraca.totalPenarikanJajan)}</span>
+                        </div>
+                        <div className="flex justify-between text-emerald-950 font-bold border-t border-slate-200 pt-1">
+                          <span>Sisa Hak Saldo Titipan Seluruh Santri:</span>
+                          <span className="font-mono-numbers">{formatRupiah(neraca.pasiva.kewajibanTitipanWadiah)}</span>
+                        </div>
                       </div>
 
                       {/* Penjelasan Transparansi */}
@@ -349,17 +446,48 @@ export const NeracaView: React.FC<NeracaViewProps> = ({
                   </td>
                 </tr>
                 <tr>
+                  <td className="px-4 py-2 text-slate-500 font-mono">2-1000A</td>
+                  <td className="px-4 py-2 text-slate-800">
+                    <p className="font-semibold">Akumulasi Titipan Uang Saku Masuk (Wali Santri)</p>
+                    <p className="text-[10px] text-slate-500">
+                      Total penerimaan titipan uang saku dari orang tua ({neraca.countSetoranTitipan} transaksi masuk)
+                    </p>
+                  </td>
+                  <td className="px-4 py-2 text-right font-mono-numbers text-slate-800">
+                    {formatRupiah(neraca.totalSetoranTitipan)}
+                  </td>
+                  <td></td>
+                </tr>
+                <tr className="bg-amber-50/70 border-y border-amber-200">
+                  <td className="px-4 py-2 text-amber-800 font-mono font-bold">2-1000B</td>
+                  <td className="px-4 py-2 text-amber-950">
+                    <div className="flex items-center gap-1.5">
+                      <HandCoins className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                      <p className="font-bold">Total Penarikan Uang Jajan Santri (Dicairkan di Loket)</p>
+                    </div>
+                    <p className="text-[10px] text-amber-800">
+                      Akumulasi penarikan uang jajan harian santri ({neraca.countPenarikanJajan} transaksi pencairan, maks. Rp 10.000 / hari)
+                    </p>
+                  </td>
+                  <td className="px-4 py-2 text-right font-mono-numbers font-bold text-rose-700">
+                    - {formatRupiah(neraca.totalPenarikanJajan)}
+                  </td>
+                  <td></td>
+                </tr>
+                <tr className="bg-emerald-50/50">
                   <td className="px-4 py-2 text-slate-500 font-mono">2-1000</td>
                   <td className="px-4 py-2 text-slate-800">
-                    <p className="font-bold text-emerald-950">Simpanan Wadiah Titipan Santri (Akad Wadiah Yad Dhamanah)</p>
+                    <p className="font-bold text-emerald-950">Sisa Bersih Simpanan Titipan Wadiah Santri</p>
                     <p className="text-[10px] text-slate-500">
-                      Total hak saldo titipan seluruh santri ({neraca.totalSantriWithBalance} santri aktif) untuk jajan harian
+                      Total hak saldo titipan seluruh santri aktif ({neraca.totalSantriWithBalance} santri memiliki saldo)
                     </p>
                   </td>
                   <td className="px-4 py-2 text-right font-mono-numbers font-bold text-emerald-800">
                     {formatRupiah(neraca.pasiva.kewajibanTitipanWadiah)}
                   </td>
-                  <td></td>
+                  <td className="px-4 py-2 text-right font-black font-mono-numbers text-emerald-950">
+                    {formatRupiah(neraca.pasiva.kewajibanTitipanWadiah)}
+                  </td>
                 </tr>
                 <tr className="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider">
                   <td className="px-4 py-2.5"></td>
