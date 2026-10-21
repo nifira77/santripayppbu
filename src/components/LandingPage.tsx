@@ -874,8 +874,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                             setLoginUsername(e.target.value);
                             if (loginError) setLoginError('');
                           }}
-                          placeholder="bendahara@gmail.com"
-                          className="w-full pl-10 pr-3 py-2.5 bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 font-medium transition-all"
+                          className="w-full pl-10 pr-3 py-2.5 bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40 font-medium transition-all"
                           autoComplete="username"
                           required
                         />
@@ -898,8 +897,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                             setLoginPassword(e.target.value);
                             if (loginError) setLoginError('');
                           }}
-                          placeholder="Masukkan password bendahara..."
-                          className="w-full pl-10 pr-10 py-2.5 bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 font-medium transition-all"
+                          className="w-full pl-10 pr-10 py-2.5 bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40 font-medium transition-all"
                           autoComplete="current-password"
                           required
                         />
