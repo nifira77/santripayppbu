@@ -23,6 +23,7 @@ import {
   formatDateIndo, 
   getTodayDateString 
 } from '../utils/accounting';
+import { PrintControlBar } from './PrintControlBar';
 
 interface NeracaViewProps {
   santriList: Santri[];
@@ -99,14 +100,13 @@ export const NeracaView: React.FC<NeracaViewProps> = ({
             </button>
           </div>
 
-          {/* Print Button */}
-          <button
-            onClick={handlePrint}
-            className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Cetak Neraca</span>
-          </button>
+          {/* Print Controls (A4 / F4 & Landscape / Portrait) */}
+          <PrintControlBar
+            documentTitle={`Laporan Neraca Wadiah (${formatType === 'SKONTRO' ? 'Bentuk Skontro' : 'Bentuk Staffel/Druffel'})`}
+            defaultOrientation={formatType === 'SKONTRO' ? 'landscape' : 'portrait'}
+            defaultPaperSize="A4"
+            buttonLabel="Cetak Neraca"
+          />
         </div>
       </div>
 
@@ -267,11 +267,11 @@ export const NeracaView: React.FC<NeracaViewProps> = ({
                         </span>
                       </div>
 
-                      {/* Kas Rekening Bank Titipan BSI */}
+                      {/* Kas Rekening Bank Titipan Transfer */}
                       <div className="flex justify-between items-start text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
                         <div>
-                          <p className="font-bold text-slate-900">Kas Bank Syariah (Titipan Transfer)</p>
-                          <p className="text-[10px] text-slate-500 font-mono">1-1010 (Rekening BSI Wadiah Santri)</p>
+                          <p className="font-bold text-slate-900">Kas Rekening Bank (Transfer Via Bank)</p>
+                          <p className="text-[10px] text-slate-500 font-mono">1-1010 (Rekening Transfer Via Bank Wadiah Santri)</p>
                           <p className="text-[10px] text-slate-500 mt-0.5 italic">
                             Dana titipan orang tua yang masuk via transfer bank
                           </p>
@@ -424,7 +424,7 @@ export const NeracaView: React.FC<NeracaViewProps> = ({
                 <tr>
                   <td className="px-4 py-2 text-slate-500 font-mono">1-1010</td>
                   <td className="px-4 py-2 text-slate-800">
-                    <p className="font-semibold">Kas Rekening Bank Syariah (BSI Wadiah Titipan)</p>
+                    <p className="font-semibold">Kas Rekening Bank Syariah (Transfer Via Bank)</p>
                     <p className="text-[10px] text-slate-500">Dana titipan orang tua yang disetor melalui transfer perbankan</p>
                   </td>
                   <td className="px-4 py-2 text-right font-mono-numbers">{formatRupiah(neraca.aktiva.kasBankTitipan)}</td>

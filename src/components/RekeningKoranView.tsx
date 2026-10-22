@@ -18,6 +18,7 @@ import {
   formatDateIndo, 
   getTodayDateString 
 } from '../utils/accounting';
+import { PrintControlBar } from './PrintControlBar';
 
 interface RekeningKoranViewProps {
   santriList: Santri[];
@@ -135,13 +136,13 @@ export const RekeningKoranView: React.FC<RekeningKoranViewProps> = ({
             />
           </div>
 
-          <button
-            onClick={handlePrint}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Cetak Rekening Koran</span>
-          </button>
+          {/* Print Controls (A4 / F4 & Landscape / Portrait) */}
+          <PrintControlBar
+            documentTitle={`Rekening Koran Wadiah - ${statement?.santri?.name || 'Santri'}`}
+            defaultOrientation="portrait"
+            defaultPaperSize="A4"
+            buttonLabel="Cetak Rekening Koran"
+          />
         </div>
       </div>
 

@@ -32,6 +32,7 @@ import {
   checkDailyAllowanceEligibility, 
   getTodayDateString 
 } from '../utils/accounting';
+import { PrintControlBar } from './PrintControlBar';
 
 interface SantriManagementViewProps {
   santriList: Santri[];
@@ -1262,20 +1263,19 @@ export const SantriManagementView: React.FC<SantriManagementViewProps> = ({
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-2">
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
               <button
                 onClick={() => setSelectedCardSantri(null)}
                 className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 rounded-lg cursor-pointer"
               >
                 Tutup
               </button>
-              <button
-                onClick={() => window.print()}
-                className="flex items-center space-x-1.5 px-4 py-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-lg shadow-xs cursor-pointer"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Cetak Kartu</span>
-              </button>
+              <PrintControlBar
+                documentTitle={`Kartu Wadiah Santri - ${selectedCardSantri?.name || 'Santri'}`}
+                defaultOrientation="portrait"
+                defaultPaperSize="A4"
+                buttonLabel="Cetak Kartu"
+              />
             </div>
           </div>
         </div>

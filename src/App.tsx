@@ -49,6 +49,7 @@ import { LandingPage } from './components/LandingPage';
 import { QuickTellerModal } from './components/QuickTellerModal';
 import { DepositModal } from './components/DepositModal';
 import { ReceiptModal } from './components/ReceiptModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { ShieldCheck, RotateCcw } from 'lucide-react';
 
 const STORAGE_KEY_SANTRI = 'santripay_santri_v1';
@@ -579,125 +580,127 @@ export default function App() {
 
         {/* View Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          {/* LOKET BENDAHARA - Sub-menu 1: Penarikan Jajan (Rp 10.000) */}
-          {(activeTab === 'dashboard' || activeTab === 'loket-jajan') && (
-            <DashboardTellerView
-              santriList={santriList}
-              transactions={transactions}
-              pesantrenProfile={pesantrenProfile}
-              totalWadiah={totalWadiah}
-              onOpenTellerForSantri={(id) => {
-                setSelectedSantriId(id);
-                setIsTellerModalOpen(true);
-              }}
-              onOpenDeposit={() => setActiveTab('setor-titipan')}
-              onQuickDispense={handleQuickDispense}
-              onViewStatement={(id) => {
-                setSelectedSantriId(id);
-                setActiveTab('rekening-koran');
-              }}
-            />
-          )}
+          <ErrorBoundary fallbackTitle="Kendala Memuat Tampilan Akuntansi">
+            {/* LOKET BENDAHARA - Sub-menu 1: Penarikan Jajan (Rp 10.000) */}
+            {(activeTab === 'dashboard' || activeTab === 'loket-jajan') && (
+              <DashboardTellerView
+                santriList={santriList}
+                transactions={transactions}
+                pesantrenProfile={pesantrenProfile}
+                totalWadiah={totalWadiah}
+                onOpenTellerForSantri={(id) => {
+                  setSelectedSantriId(id);
+                  setIsTellerModalOpen(true);
+                }}
+                onOpenDeposit={() => setActiveTab('setor-titipan')}
+                onQuickDispense={handleQuickDispense}
+                onViewStatement={(id) => {
+                  setSelectedSantriId(id);
+                  setActiveTab('rekening-koran');
+                }}
+              />
+            )}
 
-          {/* LOKET BENDAHARA - Sub-menu 2: Setor Titipan */}
-          {activeTab === 'setor-titipan' && (
-            <SetorTitipanView
-              santriList={santriList}
-              transactions={transactions}
-              pesantrenProfile={pesantrenProfile}
-              onProcessDeposit={handleProcessDeposit}
-              onViewReceipt={(trx, santri) => {
-                setReceiptTrx(trx);
-                setReceiptSantri(santri);
-              }}
-            />
-          )}
+            {/* LOKET BENDAHARA - Sub-menu 2: Setor Titipan */}
+            {activeTab === 'setor-titipan' && (
+              <SetorTitipanView
+                santriList={santriList}
+                transactions={transactions}
+                pesantrenProfile={pesantrenProfile}
+                onProcessDeposit={handleProcessDeposit}
+                onViewReceipt={(trx, santri) => {
+                  setReceiptTrx(trx);
+                  setReceiptSantri(santri);
+                }}
+              />
+            )}
 
-          {/* MENU UTAMA: Data Santri & Rekening */}
-          {activeTab === 'santri' && (
-            <SantriManagementView
-              santriList={santriList}
-              transactions={transactions}
-              pesantrenProfile={pesantrenProfile}
-              onAddSantri={handleAddSantri}
-              onUpdateSantri={handleUpdateSantri}
-              onDeleteSantri={handleDeleteSantri}
-              onToggleFreezeSantri={handleToggleFreezeSantri}
-              onOpenTellerForSantri={(id) => {
-                setSelectedSantriId(id);
-                setIsTellerModalOpen(true);
-              }}
-              onOpenDepositForSantri={(id) => {
-                setSelectedSantriId(id);
-                setActiveTab('setor-titipan');
-              }}
-              onViewStatementForSantri={(id) => {
-                setSelectedSantriId(id);
-                setActiveTab('rekening-koran');
-              }}
-            />
-          )}
+            {/* MENU UTAMA: Data Santri & Rekening */}
+            {activeTab === 'santri' && (
+              <SantriManagementView
+                santriList={santriList}
+                transactions={transactions}
+                pesantrenProfile={pesantrenProfile}
+                onAddSantri={handleAddSantri}
+                onUpdateSantri={handleUpdateSantri}
+                onDeleteSantri={handleDeleteSantri}
+                onToggleFreezeSantri={handleToggleFreezeSantri}
+                onOpenTellerForSantri={(id) => {
+                  setSelectedSantriId(id);
+                  setIsTellerModalOpen(true);
+                }}
+                onOpenDepositForSantri={(id) => {
+                  setSelectedSantriId(id);
+                  setActiveTab('setor-titipan');
+                }}
+                onViewStatementForSantri={(id) => {
+                  setSelectedSantriId(id);
+                  setActiveTab('rekening-koran');
+                }}
+              />
+            )}
 
-          {/* BUKU KAS - Sub-menu 1: Buku Kas Umum (BKU) */}
-          {activeTab === 'bku' && (
-            <BukuKasUmumView
-              transactions={transactions}
-              santriList={santriList}
-              pesantrenProfile={pesantrenProfile}
-            />
-          )}
+            {/* BUKU KAS - Sub-menu 1: Buku Kas Umum (BKU) */}
+            {activeTab === 'bku' && (
+              <BukuKasUmumView
+                transactions={transactions}
+                santriList={santriList}
+                pesantrenProfile={pesantrenProfile}
+              />
+            )}
 
-          {/* BUKU KAS - Sub-menu 2: Buku Kas Besar */}
-          {activeTab === 'buku-kas-besar' && (
-            <BukuKasBesarView
-              transactions={transactions}
-              santriList={santriList}
-              pesantrenProfile={pesantrenProfile}
-            />
-          )}
+            {/* BUKU KAS - Sub-menu 2: Buku Kas Besar */}
+            {activeTab === 'buku-kas-besar' && (
+              <BukuKasBesarView
+                transactions={transactions}
+                santriList={santriList}
+                pesantrenProfile={pesantrenProfile}
+              />
+            )}
 
-          {/* LAPORAN KEUANGAN - Sub-menu 1: Neraca (Skontro & Staffel/Druffel) */}
-          {activeTab === 'neraca' && (
-            <NeracaView
-              santriList={santriList}
-              transactions={transactions}
-              pesantrenProfile={pesantrenProfile}
-            />
-          )}
+            {/* LAPORAN KEUANGAN - Sub-menu 1: Neraca (Skontro & Staffel/Druffel) */}
+            {activeTab === 'neraca' && (
+              <NeracaView
+                santriList={santriList}
+                transactions={transactions}
+                pesantrenProfile={pesantrenProfile}
+              />
+            )}
 
-          {/* LAPORAN KEUANGAN - Sub-menu 2: Rekening Koran */}
-          {activeTab === 'rekening-koran' && (
-            <RekeningKoranView
-              santriList={santriList}
-              transactions={transactions}
-              pesantrenProfile={pesantrenProfile}
-            />
-          )}
+            {/* LAPORAN KEUANGAN - Sub-menu 2: Rekening Koran */}
+            {activeTab === 'rekening-koran' && (
+              <RekeningKoranView
+                santriList={santriList}
+                transactions={transactions}
+                pesantrenProfile={pesantrenProfile}
+              />
+            )}
 
-          {/* LAPORAN KEUANGAN - Sub-menu 3: Rekap Rentang Tanggal */}
-          {activeTab === 'rekap-tanggal' && (
-            <LaporanRekapView
-              transactions={transactions}
-              santriList={santriList}
-              pesantrenProfile={pesantrenProfile}
-            />
-          )}
+            {/* LAPORAN KEUANGAN - Sub-menu 3: Rekap Rentang Tanggal */}
+            {activeTab === 'rekap-tanggal' && (
+              <LaporanRekapView
+                transactions={transactions}
+                santriList={santriList}
+                pesantrenProfile={pesantrenProfile}
+              />
+            )}
 
-          {/* LAPORAN KEUANGAN - Sub-menu 4: Jurnal Umum Syariah */}
-          {activeTab === 'jurnal' && (
-            <JurnalUmumView
-              transactions={transactions}
-              pesantrenProfile={pesantrenProfile}
-            />
-          )}
+            {/* LAPORAN KEUANGAN - Sub-menu 4: Jurnal Umum Syariah */}
+            {activeTab === 'jurnal' && (
+              <JurnalUmumView
+                transactions={transactions}
+                pesantrenProfile={pesantrenProfile}
+              />
+            )}
 
-          {/* PENGATURAN - Profil Pesantren & Logo */}
-          {activeTab === 'profil' && (
-            <ProfilPesantrenView
-              pesantrenProfile={pesantrenProfile}
-              onUpdateProfile={handleUpdateProfile}
-            />
-          )}
+            {/* PENGATURAN - Profil Pesantren & Logo */}
+            {activeTab === 'profil' && (
+              <ProfilPesantrenView
+                pesantrenProfile={pesantrenProfile}
+                onUpdateProfile={handleUpdateProfile}
+              />
+            )}
+          </ErrorBoundary>
         </main>
 
         {/* Footer */}

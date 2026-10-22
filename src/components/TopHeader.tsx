@@ -56,17 +56,17 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
       case 'santri':
         return { parent: 'Menu Utama', title: 'Data Santri & Rekening Wadiah', badge: `${totalActiveSantri} Santri Terdaftar` };
       case 'bku':
-        return { parent: 'Buku Kas', title: 'Buku Kas Umum (BKU)', badge: 'Arus Kas & Saldo Berjalan' };
+        return { parent: 'Laporan & Akuntansi', title: 'Buku Kas Umum (BKU)', badge: 'Arus Kas & Saldo Berjalan' };
       case 'buku-kas-besar':
-        return { parent: 'Buku Kas', title: 'Buku Kas Besar (Ledger)', badge: 'Buku Besar Kas & Bank' };
+        return { parent: 'Laporan & Akuntansi', title: 'Buku Kas Besar (Ledger)', badge: 'Buku Besar Kas & Bank' };
       case 'neraca':
-        return { parent: 'Laporan Keuangan', title: 'Neraca (Skontro & Staffel/Druffel)', badge: 'PSAK Syariah 101' };
+        return { parent: 'Laporan & Akuntansi', title: 'Neraca (Skontro & Staffel/Druffel)', badge: 'PSAK Syariah 101' };
       case 'rekening-koran':
-        return { parent: 'Laporan Keuangan', title: 'Rekening Koran Wadiah', badge: 'Bank Statement' };
+        return { parent: 'Laporan & Akuntansi', title: 'Rekening Koran Wadiah', badge: 'Bank Statement' };
       case 'rekap-tanggal':
-        return { parent: 'Laporan Keuangan', title: 'Rekap Rentang Tanggal', badge: 'Arus Kas' };
+        return { parent: 'Laporan & Akuntansi', title: 'Rekap Rentang Tanggal', badge: 'Arus Kas' };
       case 'jurnal':
-        return { parent: 'Laporan Keuangan', title: 'Jurnal Umum Syariah', badge: 'Double-entry' };
+        return { parent: 'Laporan & Akuntansi', title: 'Jurnal Umum Syariah', badge: 'Double-entry' };
       case 'profil':
         return { parent: 'Pengaturan', title: 'Profil Lembaga & Logo', badge: 'Identitas Resmi' };
       default:
@@ -154,16 +154,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
               </p>
             </div>
           </div>
-
-          {/* Button to Parent Portal / Landing Page */}
-          <button
-            onClick={onGoToLanding}
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors cursor-pointer border border-slate-200"
-            title="Buka Portal Pemantauan Orang Tua"
-          >
-            <Eye className="w-3.5 h-3.5 text-emerald-700" />
-            <span className="hidden sm:inline">Portal Wali Santri</span>
-          </button>
 
           {/* User Profile / Google Sign-in */}
           {currentUser ? (

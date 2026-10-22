@@ -17,23 +17,32 @@ import {
 } from 'lucide-react';
 import { Santri, Transaction, PesantrenProfile } from '../types/finance';
 import { formatRupiah, formatDateIndo, getTodayDateString } from '../utils/accounting';
+import { PrintControlBar } from './PrintControlBar';
 
 interface BukuKasUmumViewProps {
-  transactions: Transaction[];
-  santriList: Santri[];
-  pesantrenProfile: PesantrenProfile;
+  transactions?: Transaction[];
+  santriList?: Santri[];
+  pesantrenProfile?: PesantrenProfile;
 }
 
 export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
-  transactions,
-  santriList,
-  pesantrenProfile,
+  transactions = [],
+  santriList = [],
+  pesantrenProfile = {
+    name: 'Pondok Pesantren',
+    formalName: 'Pondok Pesantren Modern Syariah',
+    address: 'Jl. Pesantren No. 1',
+    district: 'Pondok',
+    phone: '-',
+    headOfTreasury: 'Bendahara Pesantren',
+    mudir: 'Mudir Pesantren',
+  } as PesantrenProfile,
 }) => {
   const todayStr = getTodayDateString();
-
-  // Date filters: default to current month
   const firstDayOfMonth = todayStr.slice(0, 8) + '01';
-  const [startDate, setStartDate] = useState<string>(firstDayOfMonth);
+
+  // Default to 2024-01-01 so all records are immediately visible on click!
+  const [startDate, setStartDate] = useState<string>('2024-01-01');
   const [endDate, setEndDate] = useState<string>(todayStr);
   const [cashChannelFilter, setCashChannelFilter] = useState<'ALL' | 'CASH' | 'BANK'>('ALL');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'DEPOSIT' | 'WITHDRAWAL'>('ALL');
@@ -55,13 +64,17 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
     setEndDate(todayStr);
   };
 
-  // Sort transactions chronologically (oldest to newest for BKU running balance calculation)
+  // Sort transactions chronologically with bulletproof fallbacks
   const sortedChronological = useMemo(() => {
-    const list = [...transactions];
+    const list = Array.isArray(transactions) ? [...transactions] : [];
     list.sort((a, b) => {
-      const dComp = a.date.localeCompare(b.date);
+      const dateA = a?.date || '';
+      const dateB = b?.date || '';
+      const dComp = dateA.localeCompare(dateB);
       if (dComp !== 0) return dComp;
-      return (a.time || '').localeCompare(b.time || '');
+      const timeA = a?.time || '';
+      const timeB = b?.time || '';
+      return timeA.localeCompare(timeB);
     });
     return list;
   }, [transactions]);
@@ -70,11 +83,13 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
   const openingBalance = useMemo(() => {
     let balance = 0;
     for (const trx of sortedChronological) {
+      if (!trx || !trx.date) continue;
       if (trx.date < startDate) {
+        const amt = Number(trx.amount) || 0;
         if (trx.type === 'DEPOSIT_WADIAH') {
-          balance += trx.amount;
+          balance += amt;
         } else if (trx.type === 'WITHDRAWAL_JAJAN' || trx.type === 'SPECIAL_DISBURSEMENT') {
-          balance -= trx.amount;
+          balance -= amt;
         }
       }
     }
@@ -99,30 +114,35 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
     let sumBank = 0;
 
     // Filter within range
-    const periodTransactions = sortedChronological.filter(
-      (t) => t.date >= startDate && t.date <= endDate
-    );
+    const periodTransactions = sortedChronological.filter((t) => {
+      if (!t || !t.date) return false;
+      return t.date >= startDate && t.date <= endDate;
+    });
 
     let idx = 1;
     for (const trx of periodTransactions) {
-      const isBank = trx.method.includes('BANK');
+      if (!trx) continue;
+      const methodStr = String(trx.method || '').toUpperCase();
+      const isBank = methodStr.includes('BANK');
+      const amt = Number(trx.amount) || 0;
+
       let penerimaan = 0;
       let pengeluaran = 0;
 
       if (trx.type === 'DEPOSIT_WADIAH') {
-        penerimaan = trx.amount;
-        sumPenerimaan += trx.amount;
-        runningBalance += trx.amount;
+        penerimaan = amt;
+        sumPenerimaan += amt;
+        runningBalance += amt;
         if (isBank) {
-          sumBank += trx.amount;
+          sumBank += amt;
         } else {
-          sumTunai += trx.amount;
+          sumTunai += amt;
         }
       } else if (trx.type === 'WITHDRAWAL_JAJAN' || trx.type === 'SPECIAL_DISBURSEMENT') {
-        pengeluaran = trx.amount;
-        sumPengeluaran += trx.amount;
-        runningBalance -= trx.amount;
-        sumTunai -= trx.amount; // Penarikan jajan santri tunai di loket
+        pengeluaran = amt;
+        sumPengeluaran += amt;
+        runningBalance -= amt;
+        sumTunai -= amt; // Penarikan jajan santri tunai di loket
       }
 
       // Check filters
@@ -136,14 +156,20 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
         (typeFilter === 'DEPOSIT' && trx.type === 'DEPOSIT_WADIAH') ||
         (typeFilter === 'WITHDRAWAL' && (trx.type === 'WITHDRAWAL_JAJAN' || trx.type === 'SPECIAL_DISBURSEMENT'));
 
-      const q = searchQuery.toLowerCase();
+      const q = (searchQuery || '').trim().toLowerCase();
+      const trxNo = String(trx.transactionNo || '').toLowerCase();
+      const santriName = String(trx.santriName || '').toLowerCase();
+      const accNo = String(trx.accountNumber || '').toLowerCase();
+      const notes = String(trx.notes || '').toLowerCase();
+      const sender = String(trx.guardianSenderName || '').toLowerCase();
+
       const matchesSearch =
-        !searchQuery ||
-        trx.transactionNo.toLowerCase().includes(q) ||
-        trx.santriName.toLowerCase().includes(q) ||
-        trx.accountNumber.toLowerCase().includes(q) ||
-        (trx.notes && trx.notes.toLowerCase().includes(q)) ||
-        (trx.guardianSenderName && trx.guardianSenderName.toLowerCase().includes(q));
+        !q ||
+        trxNo.includes(q) ||
+        santriName.includes(q) ||
+        accNo.includes(q) ||
+        notes.includes(q) ||
+        sender.includes(q);
 
       if (matchesChannel && matchesType && matchesSearch) {
         rows.push({
@@ -198,28 +224,28 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
           {/* Quick presets */}
           <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold border border-slate-200">
             <button
-              onClick={handleSetToday}
+              onClick={handleSetAll}
               className={`px-2.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                startDate === todayStr && endDate === todayStr ? 'bg-emerald-700 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                startDate === '2024-01-01' ? 'bg-emerald-700 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Hari Ini
+              Semua Periode
             </button>
             <button
               onClick={handleSetThisMonth}
               className={`px-2.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                startDate === firstDayOfMonth && endDate === todayStr ? 'bg-emerald-700 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                startDate === firstDayOfMonth && endDate === todayStr ? 'bg-emerald-700 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Bulan Ini
             </button>
             <button
-              onClick={handleSetAll}
+              onClick={handleSetToday}
               className={`px-2.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                startDate === '2024-01-01' ? 'bg-emerald-700 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                startDate === todayStr && endDate === todayStr ? 'bg-emerald-700 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Semua
+              Hari Ini
             </button>
           </div>
 
@@ -241,14 +267,13 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
             />
           </div>
 
-          {/* Print Button */}
-          <button
-            onClick={handlePrint}
-            className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Cetak BKU</span>
-          </button>
+          {/* Print Controls (A4 / F4 & Landscape / Portrait) */}
+          <PrintControlBar
+            documentTitle="Buku Kas Umum (BKU) Titipan Santri"
+            defaultOrientation="landscape"
+            defaultPaperSize="F4"
+            buttonLabel="Cetak BKU"
+          />
         </div>
       </div>
 
@@ -268,7 +293,7 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
             <button
               onClick={() => setCashChannelFilter('CASH')}
               className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                cashChannelFilter === 'CASH' ? 'bg-amber-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                cashChannelFilter === 'CASH' ? 'bg-amber-600 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Banknote className="w-3.5 h-3.5" />
@@ -277,11 +302,11 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
             <button
               onClick={() => setCashChannelFilter('BANK')}
               className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                cashChannelFilter === 'BANK' ? 'bg-emerald-700 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                cashChannelFilter === 'BANK' ? 'bg-emerald-700 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <CreditCard className="w-3.5 h-3.5" />
-              <span>Kas Bank BSI</span>
+              <span>Kas Transfer Via Bank</span>
             </button>
           </div>
 
@@ -293,23 +318,23 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
                 typeFilter === 'ALL' ? 'bg-slate-800 text-white' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Semua Transaksi
+              Semua Mutasi
             </button>
             <button
               onClick={() => setTypeFilter('DEPOSIT')}
               className={`px-2.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                typeFilter === 'DEPOSIT' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:text-slate-900'
+                typeFilter === 'DEPOSIT' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Penerimaan Saja
+              Penerimaan
             </button>
             <button
               onClick={() => setTypeFilter('WITHDRAWAL')}
               className={`px-2.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                typeFilter === 'WITHDRAWAL' ? 'bg-rose-600 text-white' : 'text-slate-600 hover:text-slate-900'
+                typeFilter === 'WITHDRAWAL' ? 'bg-rose-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Pengeluaran Saja
+              Pengeluaran
             </button>
           </div>
         </div>
@@ -404,7 +429,7 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
           <p className="font-arabic text-sm text-emerald-800 font-bold mb-1">
             بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
           </p>
-          {pesantrenProfile.logoUrl && (
+          {pesantrenProfile?.logoUrl && (
             <div className="flex justify-center mb-2">
               <img
                 src={pesantrenProfile.logoUrl}
@@ -414,19 +439,14 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
             </div>
           )}
           <h1 className="text-lg sm:text-xl font-black uppercase text-slate-900 tracking-wide font-sans">
-            {pesantrenProfile.formalName}
+            {pesantrenProfile?.formalName || 'Pondok Pesantren'}
           </h1>
           <p className="text-xs text-slate-600 font-sans mt-0.5">
             Unit Pengelolaan Kas Titipan Wadiah Santri (Baitul Maal Pesantren)
           </p>
           <p className="text-[10px] text-slate-500 font-sans">
-            {pesantrenProfile.address}, {pesantrenProfile.district} • Telp: {pesantrenProfile.phone}
+            {pesantrenProfile?.address || ''}, {pesantrenProfile?.district || ''} • Telp: {pesantrenProfile?.phone || '-'}
           </p>
-          {pesantrenProfile.motto && (
-            <p className="mt-1 text-xs italic font-bold text-amber-700 bg-amber-50 inline-block px-3 py-0.5 rounded-full border border-amber-200">
-              "{pesantrenProfile.motto}"
-            </p>
-          )}
 
           <div className="mt-4 pt-2 border-t border-slate-200 flex flex-col items-center">
             <h2 className="text-base font-black uppercase tracking-wider text-slate-900">
@@ -463,7 +483,7 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
                 {/* Baris Saldo Awal */}
                 <tr className="bg-slate-100/80 font-bold text-slate-800">
                   <td className="px-3 py-2 text-center">-</td>
-                  <td className="px-3 py-2">{formatDateIndo(startDate).slice(0, 6)}</td>
+                  <td className="px-3 py-2">{formatDateIndo(startDate)}</td>
                   <td className="px-3 py-2 text-slate-500 font-mono text-[10px]">SALDO-AWAL</td>
                   <td className="px-3 py-2 font-sans font-bold text-slate-900">
                     Saldo Awal Kas Titipan Wadiah per {formatDateIndo(startDate)}
@@ -482,41 +502,41 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
                 {bkuRows.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-10 text-center text-slate-400 italic font-sans">
-                      Tidak ada transaksi pada periode dan filter yang dipilih.
+                      Tidak ada transaksi pada periode dan filter yang dipilih. Silakan klik tombol "Semua Periode" untuk melihat seluruh transaksi.
                     </td>
                   </tr>
                 ) : (
                   bkuRows.map((row) => {
-                    const isWithdrawal = row.trx.type === 'WITHDRAWAL_JAJAN' || row.trx.type === 'SPECIAL_DISBURSEMENT';
+                    const isWithdrawal = row.trx?.type === 'WITHDRAWAL_JAJAN' || row.trx?.type === 'SPECIAL_DISBURSEMENT';
 
                     return (
                       <tr 
-                        key={row.trx.id}
+                        key={row.trx?.id || row.index}
                         className={`hover:bg-slate-50/80 transition-colors ${
                           isWithdrawal ? 'bg-amber-50/20' : 'bg-white'
                         }`}
                       >
                         <td className="px-3 py-2.5 text-center text-slate-500">{row.index}</td>
                         <td className="px-3 py-2.5 text-slate-700 whitespace-nowrap">
-                          <div>{row.trx.date}</div>
-                          <div className="text-[10px] text-slate-400">{row.trx.time}</div>
+                          <div>{row.trx?.date || '-'}</div>
+                          <div className="text-[10px] text-slate-400">{row.trx?.time || ''}</div>
                         </td>
                         <td className="px-3 py-2.5 font-mono text-[10px] text-slate-600 whitespace-nowrap">
-                          {row.trx.transactionNo}
+                          {row.trx?.transactionNo || '-'}
                         </td>
                         <td className="px-3 py-2.5 font-sans">
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <p className="font-bold text-slate-900 text-xs">
-                                {isWithdrawal ? 'Pencairan Jajan Santri' : 'Penerimaan Titipan Orang Tua'}: {row.trx.santriName}
+                                {isWithdrawal ? 'Pencairan Jajan Santri' : 'Penerimaan Titipan Orang Tua'}: {row.trx?.santriName || 'Santri'}
                               </p>
                               <p className="text-[10px] text-slate-500">
-                                Rek: <span className="font-mono font-semibold">{row.trx.accountNumber}</span>
-                                {row.trx.guardianSenderName && (
+                                Rek: <span className="font-mono font-semibold">{row.trx?.accountNumber || '-'}</span>
+                                {row.trx?.guardianSenderName && (
                                   <> • Penyetor: <span className="text-slate-700 font-medium">{row.trx.guardianSenderName}</span></>
                                 )}
                               </p>
-                              {row.trx.notes && (
+                              {row.trx?.notes && (
                                 <p className="text-[10px] text-slate-500 italic mt-0.5">
                                   Ket: "{row.trx.notes}"
                                 </p>
@@ -536,7 +556,7 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
                             {row.isBank ? (
                               <>
                                 <CreditCard className="w-3 h-3" />
-                                <span>Bank BSI</span>
+                                <span>Transfer Via Bank</span>
                               </>
                             ) : (
                               <>
@@ -614,12 +634,12 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
                 <span className="font-semibold">Tersedia untuk Jajan Harian</span>
               </div>
               <div className="flex justify-between">
-                <span>• Posisi Kas di Rekening Bank Syariah (BSI):</span>
+                <span>• Posisi Kas Rekening (Transfer Via Bank):</span>
                 <span className="font-semibold">Titipan Transfer Orang Tua</span>
               </div>
               <div className="flex justify-between text-emerald-900 font-bold border-t border-slate-300 pt-1">
                 <span>Status Rekonsiliasi:</span>
-                <span className="text-emerald-700">COCOK / SEIMBANG (100%)</span>
+                <span className="text-emerald-700 font-bold">COCOK / SEIMBANG (100%)</span>
               </div>
             </div>
           </div>
@@ -635,19 +655,19 @@ export const BukuKasUmumView: React.FC<BukuKasUmumViewProps> = ({
                 Tanda Tangan & Stempel
               </span>
             </div>
-            <p className="font-bold underline text-slate-900">{pesantrenProfile.mudir}</p>
+            <p className="font-bold underline text-slate-900">{pesantrenProfile?.mudir || '-'}</p>
           </div>
 
           <div className="text-center">
-            <p className="text-slate-500 text-[11px]">{pesantrenProfile.district}, {formatDateIndo(endDate)}</p>
+            <p className="text-slate-500 text-[11px]">{pesantrenProfile?.district || ''}, {formatDateIndo(endDate)}</p>
             <p className="font-bold">Kepala Bendahara Pesantren</p>
             <div className="h-16 flex items-center justify-center">
               <span className="text-[10px] text-slate-300 border border-dashed border-slate-300 px-3 py-1 rounded">
                 Tanda Tangan & Stempel
               </span>
             </div>
-            <p className="font-bold underline text-slate-900">{pesantrenProfile.headOfTreasury}</p>
-            <p className="text-[10px] text-slate-500">{pesantrenProfile.treasuryNIP}</p>
+            <p className="font-bold underline text-slate-900">{pesantrenProfile?.headOfTreasury || '-'}</p>
+            <p className="text-[10px] text-slate-500">{pesantrenProfile?.treasuryNIP || ''}</p>
           </div>
         </div>
       </div>

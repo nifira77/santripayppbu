@@ -15,11 +15,12 @@ import {
 } from 'lucide-react';
 import { Santri, Transaction, PesantrenProfile } from '../types/finance';
 import { formatRupiah, formatDateIndo, getTodayDateString } from '../utils/accounting';
+import { PrintControlBar } from './PrintControlBar';
 
 interface BukuKasBesarViewProps {
-  transactions: Transaction[];
-  santriList: Santri[];
-  pesantrenProfile: PesantrenProfile;
+  transactions?: Transaction[];
+  santriList?: Santri[];
+  pesantrenProfile?: PesantrenProfile;
 }
 
 type MasterAccountKey = 'ALL' | '1-1000' | '1-1010' | '2-1000';
@@ -37,14 +38,23 @@ interface LedgerRow {
 }
 
 export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
-  transactions,
-  santriList,
-  pesantrenProfile,
+  transactions = [],
+  santriList = [],
+  pesantrenProfile = {
+    name: 'Pondok Pesantren',
+    formalName: 'Pondok Pesantren Modern Syariah',
+    address: 'Jl. Pesantren No. 1',
+    district: 'Pondok',
+    phone: '-',
+    headOfTreasury: 'Bendahara Pesantren',
+    mudir: 'Mudir Pesantren',
+  } as PesantrenProfile,
 }) => {
   const todayStr = getTodayDateString();
   const firstDayOfMonth = todayStr.slice(0, 8) + '01';
 
-  const [startDate, setStartDate] = useState<string>(firstDayOfMonth);
+  // Default to 2024-01-01 to immediately display all accounts and transactions
+  const [startDate, setStartDate] = useState<string>('2024-01-01');
   const [endDate, setEndDate] = useState<string>(todayStr);
   const [selectedAccount, setSelectedAccount] = useState<MasterAccountKey>('ALL');
 
@@ -64,13 +74,17 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
     setEndDate(todayStr);
   };
 
-  // Sort chronological
+  // Sort chronological with bulletproof safety
   const sortedChronological = useMemo(() => {
-    const list = [...transactions];
+    const list = Array.isArray(transactions) ? [...transactions] : [];
     list.sort((a, b) => {
-      const dComp = a.date.localeCompare(b.date);
+      const dateA = a?.date || '';
+      const dateB = b?.date || '';
+      const dComp = dateA.localeCompare(dateB);
       if (dComp !== 0) return dComp;
-      return (a.time || '').localeCompare(b.time || '');
+      const timeA = a?.time || '';
+      const timeB = b?.time || '';
+      return timeA.localeCompare(timeB);
     });
     return list;
   }, [transactions]);
@@ -78,16 +92,16 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
   // Master Accounts Data Builder
   const accountData = useMemo(() => {
     // 1. Akun 1-1000: Kas Tunai Bendahara
-    // Normal Balance: DEBIT
-    // Debit: Setoran tunai (+)
-    // Kredit: Penarikan jajan tunai (-)
     let kasTunaiOpening = 0;
     for (const trx of sortedChronological) {
+      if (!trx || !trx.date) continue;
+      const methodStr = String(trx.method || '').toUpperCase();
+      const amt = Number(trx.amount) || 0;
       if (trx.date < startDate) {
-        if (trx.type === 'DEPOSIT_WADIAH' && !trx.method.includes('BANK')) {
-          kasTunaiOpening += trx.amount;
+        if (trx.type === 'DEPOSIT_WADIAH' && !methodStr.includes('BANK')) {
+          kasTunaiOpening += amt;
         } else if (trx.type === 'WITHDRAWAL_JAJAN' || trx.type === 'SPECIAL_DISBURSEMENT') {
-          kasTunaiOpening -= trx.amount;
+          kasTunaiOpening -= amt;
         }
       }
     }
@@ -97,15 +111,15 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
     let kasTunaiCredit = 0;
     const kasTunaiRows: LedgerRow[] = [];
 
-    // 2. Akun 1-1010: Kas Bank Syariah BSI
-    // Normal Balance: DEBIT
-    // Debit: Setoran transfer (+)
-    // Kredit: Pencairan / transfer (-)
+    // 2. Akun 1-1010: Kas Rekening Transfer Via Bank
     let kasBankOpening = 0;
     for (const trx of sortedChronological) {
+      if (!trx || !trx.date) continue;
+      const methodStr = String(trx.method || '').toUpperCase();
+      const amt = Number(trx.amount) || 0;
       if (trx.date < startDate) {
-        if (trx.type === 'DEPOSIT_WADIAH' && trx.method.includes('BANK')) {
-          kasBankOpening += trx.amount;
+        if (trx.type === 'DEPOSIT_WADIAH' && methodStr.includes('BANK')) {
+          kasBankOpening += amt;
         }
       }
     }
@@ -116,16 +130,15 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
     const kasBankRows: LedgerRow[] = [];
 
     // 3. Akun 2-1000: Kewajiban Simpanan Wadiah Santri
-    // Normal Balance: KREDIT
-    // Kredit: Setoran titipan dari wali santri (+)
-    // Debit: Penarikan uang jajan santri yang melunasi titipan (-)
     let wadiahOpening = 0;
     for (const trx of sortedChronological) {
+      if (!trx || !trx.date) continue;
+      const amt = Number(trx.amount) || 0;
       if (trx.date < startDate) {
         if (trx.type === 'DEPOSIT_WADIAH') {
-          wadiahOpening += trx.amount;
+          wadiahOpening += amt;
         } else if (trx.type === 'WITHDRAWAL_JAJAN' || trx.type === 'SPECIAL_DISBURSEMENT') {
-          wadiahOpening -= trx.amount;
+          wadiahOpening -= amt;
         }
       }
     }
@@ -136,88 +149,94 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
     const wadiahRows: LedgerRow[] = [];
 
     // Process transactions in period
-    const periodTransactions = sortedChronological.filter(
-      (t) => t.date >= startDate && t.date <= endDate
-    );
+    const periodTransactions = sortedChronological.filter((t) => {
+      if (!t || !t.date) return false;
+      return t.date >= startDate && t.date <= endDate;
+    });
 
     for (const trx of periodTransactions) {
-      const isBank = trx.method.includes('BANK');
+      if (!trx) continue;
+      const methodStr = String(trx.method || '').toUpperCase();
+      const isBank = methodStr.includes('BANK');
+      const amt = Number(trx.amount) || 0;
+      const sName = String(trx.santriName || 'Santri');
+      const accNo = String(trx.accountNumber || '-');
+      const trxNo = String(trx.transactionNo || '-');
 
       if (trx.type === 'DEPOSIT_WADIAH') {
-        // Post to Cash or Bank
         if (isBank) {
-          kasBankDebit += trx.amount;
-          kasBankBalance += trx.amount;
+          kasBankDebit += amt;
+          kasBankBalance += amt;
           kasBankRows.push({
-            date: trx.date,
-            time: trx.time,
-            refNo: trx.transactionNo,
-            description: `Penerimaan titipan transfer wali: ${trx.santriName} (Rek. ${trx.accountNumber})`,
-            debit: trx.amount,
+            date: trx.date || '',
+            time: trx.time || '',
+            refNo: trxNo,
+            description: `Penerimaan titipan transfer wali: ${sName} (Rek. ${accNo})`,
+            debit: amt,
             credit: 0,
             balance: kasBankBalance,
-            santriName: trx.santriName,
-            accountNumber: trx.accountNumber,
+            santriName: sName,
+            accountNumber: accNo,
           });
         } else {
-          kasTunaiDebit += trx.amount;
-          kasTunaiBalance += trx.amount;
+          kasTunaiDebit += amt;
+          kasTunaiBalance += amt;
           kasTunaiRows.push({
-            date: trx.date,
-            time: trx.time,
-            refNo: trx.transactionNo,
-            description: `Penerimaan titipan tunai loket: ${trx.santriName} (Rek. ${trx.accountNumber})`,
-            debit: trx.amount,
+            date: trx.date || '',
+            time: trx.time || '',
+            refNo: trxNo,
+            description: `Penerimaan titipan tunai loket: ${sName} (Rek. ${accNo})`,
+            debit: amt,
             credit: 0,
             balance: kasTunaiBalance,
-            santriName: trx.santriName,
-            accountNumber: trx.accountNumber,
+            santriName: sName,
+            accountNumber: accNo,
           });
         }
 
         // Post to Wadiah Liability (Credit increases liability)
-        wadiahCredit += trx.amount;
-        wadiahBalance += trx.amount;
+        wadiahCredit += amt;
+        wadiahBalance += amt;
         wadiahRows.push({
-          date: trx.date,
-          time: trx.time,
-          refNo: trx.transactionNo,
-          description: `Penambahan saldo titipan wadiah: ${trx.santriName} [${trx.accountNumber}]`,
+          date: trx.date || '',
+          time: trx.time || '',
+          refNo: trxNo,
+          description: `Penambahan saldo titipan wadiah: ${sName} [${accNo}]`,
           debit: 0,
-          credit: trx.amount,
+          credit: amt,
           balance: wadiahBalance,
-          santriName: trx.santriName,
-          accountNumber: trx.accountNumber,
+          santriName: sName,
+          accountNumber: accNo,
         });
       } else if (trx.type === 'WITHDRAWAL_JAJAN' || trx.type === 'SPECIAL_DISBURSEMENT') {
         // Disbursed in cash at loket
-        kasTunaiCredit += trx.amount;
-        kasTunaiBalance -= trx.amount;
+        kasTunaiCredit += amt;
+        kasTunaiBalance -= amt;
         kasTunaiRows.push({
-          date: trx.date,
-          time: trx.time,
-          refNo: trx.transactionNo,
-          description: `Pencairan jajan harian tunai: ${trx.santriName} [${trx.accountNumber}]`,
+          date: trx.date || '',
+          time: trx.time || '',
+          refNo: trxNo,
+          description: `Pencairan jajan harian tunai: ${sName} [${accNo}]`,
           debit: 0,
-          credit: trx.amount,
+          credit: amt,
           balance: kasTunaiBalance,
-          santriName: trx.santriName,
-          accountNumber: trx.accountNumber,
+          santriName: sName,
+          accountNumber: accNo,
         });
 
         // Debit decreases Wadiah Liability
-        wadiahDebit += trx.amount;
-        wadiahBalance -= trx.amount;
+        wadiahDebit += amt;
+        wadiahBalance -= amt;
         wadiahRows.push({
-          date: trx.date,
-          time: trx.time,
-          refNo: trx.transactionNo,
-          description: `Pelunasan jajan harian wadiah: ${trx.santriName} [${trx.accountNumber}]`,
-          debit: trx.amount,
+          date: trx.date || '',
+          time: trx.time || '',
+          refNo: trxNo,
+          description: `Pelunasan jajan harian wadiah: ${sName} [${accNo}]`,
+          debit: amt,
           credit: 0,
           balance: wadiahBalance,
-          santriName: trx.santriName,
-          accountNumber: trx.accountNumber,
+          santriName: sName,
+          accountNumber: accNo,
         });
       }
     }
@@ -237,7 +256,7 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
       },
       '1-1010': {
         code: '1-1010',
-        name: 'Kas Rekening Bank Syariah (BSI Wadiah Santri)',
+        name: 'Kas Rekening Bank Syariah (Transfer Via Bank)',
         type: 'ASET_LANCAR',
         normalBalance: 'DEBIT',
         description: 'Rekening bank syariah penampung setoran transfer titipan dari wali santri',
@@ -266,9 +285,12 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
     window.print();
   };
 
-  const accountsToRender = selectedAccount === 'ALL' 
-    ? [accountData['1-1000'], accountData['1-1010'], accountData['2-1000']]
-    : [accountData[selectedAccount]];
+  const accountsToRender = useMemo(() => {
+    if (selectedAccount === 'ALL') {
+      return [accountData['1-1000'], accountData['1-1010'], accountData['2-1000']].filter(Boolean);
+    }
+    return [accountData[selectedAccount]].filter(Boolean);
+  }, [selectedAccount, accountData]);
 
   return (
     <div className="space-y-6">
@@ -297,28 +319,28 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
           {/* Quick presets */}
           <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold border border-slate-200">
             <button
-              onClick={handleSetToday}
+              onClick={handleSetAll}
               className={`px-2.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                startDate === todayStr && endDate === todayStr ? 'bg-emerald-700 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                startDate === '2024-01-01' ? 'bg-emerald-700 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Hari Ini
+              Semua Periode
             </button>
             <button
               onClick={handleSetThisMonth}
               className={`px-2.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                startDate === firstDayOfMonth && endDate === todayStr ? 'bg-emerald-700 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                startDate === firstDayOfMonth && endDate === todayStr ? 'bg-emerald-700 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Bulan Ini
             </button>
             <button
-              onClick={handleSetAll}
+              onClick={handleSetToday}
               className={`px-2.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                startDate === '2024-01-01' ? 'bg-emerald-700 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                startDate === todayStr && endDate === todayStr ? 'bg-emerald-700 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Semua
+              Hari Ini
             </button>
           </div>
 
@@ -340,14 +362,13 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
             />
           </div>
 
-          {/* Print */}
-          <button
-            onClick={handlePrint}
-            className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Cetak Buku Besar</span>
-          </button>
+          {/* Print Controls (A4 / F4 & Landscape / Portrait) */}
+          <PrintControlBar
+            documentTitle="Buku Kas Besar (Ledger Kas & Wadiah)"
+            defaultOrientation="landscape"
+            defaultPaperSize="F4"
+            buttonLabel="Cetak Buku Besar"
+          />
         </div>
       </div>
 
@@ -368,7 +389,7 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
           onClick={() => setSelectedAccount('1-1000')}
           className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             selectedAccount === '1-1000'
-              ? 'bg-amber-600 text-white shadow-xs'
+              ? 'bg-amber-600 text-white shadow-xs font-bold'
               : 'bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100'
           }`}
         >
@@ -380,19 +401,19 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
           onClick={() => setSelectedAccount('1-1010')}
           className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             selectedAccount === '1-1010'
-              ? 'bg-emerald-700 text-white shadow-xs'
+              ? 'bg-emerald-700 text-white shadow-xs font-bold'
               : 'bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100'
           }`}
         >
           <CreditCard className="w-3.5 h-3.5" />
-          <span>1-1010 Kas Rekening Bank BSI</span>
+          <span>1-1010 Kas Rekening Transfer Via Bank</span>
         </button>
 
         <button
           onClick={() => setSelectedAccount('2-1000')}
           className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             selectedAccount === '2-1000'
-              ? 'bg-teal-800 text-white shadow-xs'
+              ? 'bg-teal-800 text-white shadow-xs font-bold'
               : 'bg-teal-50 text-teal-900 border border-teal-200 hover:bg-teal-100'
           }`}
         >
@@ -410,16 +431,16 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
               <Banknote className="w-4 h-4 text-amber-600" />
               <span>1-1000 Kas Fisik Tunai</span>
             </span>
-            <span className="font-mono text-[10px] bg-amber-100 px-1.5 py-0.2 rounded">
+            <span className="font-mono text-[10px] bg-amber-100 px-1.5 py-0.2 rounded font-bold">
               Loket Jajan
             </span>
           </div>
           <p className="text-xl font-black text-slate-900 font-mono-numbers mt-2">
-            {formatRupiah(accountData['1-1000'].closingBalance)}
+            {formatRupiah(accountData?.['1-1000']?.closingBalance || 0)}
           </p>
           <div className="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600 font-mono-numbers flex justify-between">
-            <span>Debet: +{formatRupiah(accountData['1-1000'].totalDebit)}</span>
-            <span className="text-rose-600">Kredit: -{formatRupiah(accountData['1-1000'].totalCredit)}</span>
+            <span className="text-emerald-700 font-semibold">Debet: +{formatRupiah(accountData?.['1-1000']?.totalDebit || 0)}</span>
+            <span className="text-rose-600 font-semibold">Kredit: -{formatRupiah(accountData?.['1-1000']?.totalCredit || 0)}</span>
           </div>
         </div>
 
@@ -428,18 +449,18 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
           <div className="flex items-center justify-between text-emerald-900 text-xs font-bold">
             <span className="flex items-center gap-1.5">
               <CreditCard className="w-4 h-4 text-emerald-600" />
-              <span>1-1010 Kas Bank BSI</span>
+              <span>1-1010 Kas Transfer Via Bank</span>
             </span>
-            <span className="font-mono text-[10px] bg-emerald-100 px-1.5 py-0.2 rounded">
+            <span className="font-mono text-[10px] bg-emerald-100 px-1.5 py-0.2 rounded font-bold">
               Rekening Bank
             </span>
           </div>
           <p className="text-xl font-black text-slate-900 font-mono-numbers mt-2">
-            {formatRupiah(accountData['1-1010'].closingBalance)}
+            {formatRupiah(accountData?.['1-1010']?.closingBalance || 0)}
           </p>
           <div className="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600 font-mono-numbers flex justify-between">
-            <span>Debet: +{formatRupiah(accountData['1-1010'].totalDebit)}</span>
-            <span className="text-slate-400">Kredit: -{formatRupiah(accountData['1-1010'].totalCredit)}</span>
+            <span className="text-emerald-700 font-semibold">Debet: +{formatRupiah(accountData?.['1-1010']?.totalDebit || 0)}</span>
+            <span className="text-slate-400 font-semibold">Kredit: -{formatRupiah(accountData?.['1-1010']?.totalCredit || 0)}</span>
           </div>
         </div>
 
@@ -455,11 +476,11 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
             </span>
           </div>
           <p className="text-xl font-black text-emerald-300 font-mono-numbers mt-2">
-            {formatRupiah(accountData['2-1000'].closingBalance)}
+            {formatRupiah(accountData?.['2-1000']?.closingBalance || 0)}
           </p>
           <div className="mt-2 pt-2 border-t border-slate-800 text-[11px] text-slate-300 font-mono-numbers flex justify-between">
-            <span className="text-rose-300">Debet (Jajan): -{formatRupiah(accountData['2-1000'].totalDebit)}</span>
-            <span className="text-emerald-300">Kredit (Setor): +{formatRupiah(accountData['2-1000'].totalCredit)}</span>
+            <span className="text-rose-300 font-semibold">Debet (Jajan): -{formatRupiah(accountData?.['2-1000']?.totalDebit || 0)}</span>
+            <span className="text-emerald-300 font-semibold">Kredit (Setor): +{formatRupiah(accountData?.['2-1000']?.totalCredit || 0)}</span>
           </div>
         </div>
       </div>
@@ -471,7 +492,7 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
           <p className="font-arabic text-sm text-emerald-800 font-bold mb-1">
             بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
           </p>
-          {pesantrenProfile.logoUrl && (
+          {pesantrenProfile?.logoUrl && (
             <div className="flex justify-center mb-2">
               <img
                 src={pesantrenProfile.logoUrl}
@@ -481,19 +502,14 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
             </div>
           )}
           <h1 className="text-lg sm:text-xl font-black uppercase text-slate-900 tracking-wide font-sans">
-            {pesantrenProfile.formalName}
+            {pesantrenProfile?.formalName || 'Pondok Pesantren'}
           </h1>
           <p className="text-xs text-slate-600 font-sans mt-0.5">
             Unit Pengelolaan Kas Titipan Wadiah Santri (Baitul Maal Pesantren)
           </p>
           <p className="text-[10px] text-slate-500 font-sans">
-            {pesantrenProfile.address}, {pesantrenProfile.district} • Telp: {pesantrenProfile.phone}
+            {pesantrenProfile?.address || ''}, {pesantrenProfile?.district || ''} • Telp: {pesantrenProfile?.phone || '-'}
           </p>
-          {pesantrenProfile.motto && (
-            <p className="mt-1 text-xs italic font-bold text-amber-700 bg-amber-50 inline-block px-3 py-0.5 rounded-full border border-amber-200">
-              "{pesantrenProfile.motto}"
-            </p>
-          )}
 
           <div className="mt-4 pt-2 border-t border-slate-200 flex flex-col items-center">
             <h2 className="text-base font-black uppercase tracking-wider text-slate-900">
@@ -551,7 +567,7 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
                     {/* Saldo Awal Akun */}
                     <tr className="bg-slate-50 font-bold text-slate-700">
                       <td className="px-3 py-2 text-center">-</td>
-                      <td className="px-3 py-2">{formatDateIndo(startDate).slice(0, 6)}</td>
+                      <td className="px-3 py-2">{formatDateIndo(startDate)}</td>
                       <td className="px-3 py-2 font-mono text-[10px] text-slate-400">SALDO-AWAL</td>
                       <td className="px-3 py-2 font-sans font-bold text-slate-800">
                         Saldo Awal per {formatDateIndo(startDate)}
@@ -567,7 +583,7 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
                     {acc.rows.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="px-4 py-6 text-center text-slate-400 italic font-sans">
-                          Tidak ada mutasi transaksi pada akun ini dalam periode yang dipilih.
+                          Tidak ada mutasi transaksi pada akun ini dalam periode yang dipilih. Silakan klik "Semua Periode" untuk melihat seluruh mutasi.
                         </td>
                       </tr>
                     ) : (
@@ -629,19 +645,19 @@ export const BukuKasBesarView: React.FC<BukuKasBesarViewProps> = ({
                 Tanda Tangan & Stempel
               </span>
             </div>
-            <p className="font-bold underline text-slate-900">{pesantrenProfile.mudir}</p>
+            <p className="font-bold underline text-slate-900">{pesantrenProfile?.mudir || '-'}</p>
           </div>
 
           <div className="text-center">
-            <p className="text-slate-500 text-[11px]">{pesantrenProfile.district}, {formatDateIndo(endDate)}</p>
+            <p className="text-slate-500 text-[11px]">{pesantrenProfile?.district || ''}, {formatDateIndo(endDate)}</p>
             <p className="font-bold">Kepala Bendahara Pesantren</p>
             <div className="h-16 flex items-center justify-center">
               <span className="text-[10px] text-slate-300 border border-dashed border-slate-300 px-3 py-1 rounded">
                 Tanda Tangan & Stempel
               </span>
             </div>
-            <p className="font-bold underline text-slate-900">{pesantrenProfile.headOfTreasury}</p>
-            <p className="text-[10px] text-slate-500">{pesantrenProfile.treasuryNIP}</p>
+            <p className="font-bold underline text-slate-900">{pesantrenProfile?.headOfTreasury || '-'}</p>
+            <p className="text-[10px] text-slate-500">{pesantrenProfile?.treasuryNIP || ''}</p>
           </div>
         </div>
       </div>

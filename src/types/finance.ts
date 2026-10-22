@@ -90,7 +90,7 @@ export interface NeracaData {
   asOfDate: string;
   aktiva: {
     kasTunaiTitipan: number;      // Kas fisik titipan di brankas bendahara
-    kasBankTitipan: number;       // Kas titipan di rekening bank syariah (BSI)
+    kasBankTitipan: number;       // Kas titipan di rekening bank (Transfer Via Bank)
     totalAktiva: number;          // Total kas titipan yang dikelola bendahara
   };
   pasiva: {

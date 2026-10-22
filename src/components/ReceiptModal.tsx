@@ -2,6 +2,7 @@ import React from 'react';
 import { Printer, CheckCircle, X, ShieldCheck } from 'lucide-react';
 import { Transaction, Santri, PesantrenProfile } from '../types/finance';
 import { formatRupiah, formatDateIndo, formatPaymentMethodLabel } from '../utils/accounting';
+import { PrintControlBar } from './PrintControlBar';
 
 interface ReceiptModalProps {
   transaction: Transaction;
@@ -191,22 +192,21 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         {/* Modal Actions: Menu Selesai & Cetak Struk */}
         <div className="p-4 bg-slate-100 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
           <p className="text-xs text-slate-500">
-            Klik <strong>Cetak Struk</strong> untuk printer fisik, atau klik <strong>Selesai</strong> untuk mengakhiri transaksi.
+            Pilih format <strong>A4</strong> atau <strong>F4</strong> (Portrait/Landscape) lalu cetak struk kuitansi.
           </p>
-          <div className="flex items-center space-x-2 shrink-0 self-end sm:self-auto">
-            <button
-              onClick={handlePrint}
-              className="flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-white rounded-xl shadow-xs transition-all cursor-pointer"
-            >
-              <Printer className="w-4 h-4 text-emerald-400" />
-              <span>Cetak Struk</span>
-            </button>
+          <div className="flex flex-wrap items-center gap-2 shrink-0 self-end sm:self-auto">
+            <PrintControlBar
+              documentTitle={`Bukti Transaksi Syariah - ${santri?.name || 'Santri'}`}
+              defaultOrientation="portrait"
+              defaultPaperSize="A4"
+              buttonLabel="Cetak Struk"
+            />
             <button
               onClick={onClose}
-              className="flex items-center space-x-2 px-5 py-2 text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white rounded-xl shadow-md shadow-emerald-950/20 transition-all cursor-pointer ring-2 ring-emerald-500/30"
+              className="flex items-center space-x-2 px-4 py-2 text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white rounded-xl shadow-md shadow-emerald-950/20 transition-all cursor-pointer ring-2 ring-emerald-500/30"
             >
               <CheckCircle className="w-4 h-4 text-white" />
-              <span>Selesai Transaksi</span>
+              <span>Selesai</span>
             </button>
           </div>
         </div>

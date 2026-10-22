@@ -9,7 +9,7 @@ export const defaultPesantrenProfile: PesantrenProfile = {
   district: "Kabupaten Jombang, Jawa Timur 61419",
   phone: "(0321) 865-9921 / WhatsApp: 0812-3456-7890",
   email: "keuangan@darulmaarif-syariah.ponpes.id",
-  bankAccountBSI: "BSI 712-8899-001 a.n. YPI Darul Ma'arif (Titipan Santri)",
+  bankAccountBSI: "Transfer Via Bank (Rek. 712-8899-001 a.n. Titipan Santri)",
   headOfTreasury: "Ust. H. Ahmad Fauzi, S.E.I., M.E.Sy.",
   treasuryNIP: "NIP. 19840612.201001.1.003",
   mudir: "K.H. Muhammad Syukron Ma'mun, Lc., M.A.",
@@ -27,7 +27,7 @@ export const defaultCOA: AccountCOA[] = [
   },
   {
     code: '1-1010',
-    name: 'Kas Bank BSI (Titipan Wadiah)',
+    name: 'Kas Rekening Bank (Transfer Via Bank Titipan Wadiah)',
     category: 'ASET_LANCAR',
     normalBalance: 'DEBIT',
     description: 'Rekening bank penampung titipan transfer dari wali santri',

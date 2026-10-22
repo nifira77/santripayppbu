@@ -317,13 +317,13 @@ export const ProfilPesantrenView: React.FC<ProfilPesantrenViewProps> = ({
 
           <div className="text-xs">
             <label className="block font-bold text-slate-700 mb-1">
-              Rekening Bank Syariah (Penampung Titipan Transfer Orang Tua)
+              Rekening Bank Penampung (Transfer Via Bank - Titipan Orang Tua)
             </label>
             <input
               type="text"
               value={formData.bankAccountBSI}
               onChange={(e) => setFormData({ ...formData, bankAccountBSI: e.target.value })}
-              placeholder="BSI 712-8899-001 a.n. YPI Darul Ma'arif (Titipan Santri)"
+              placeholder="Transfer Via Bank (Contoh: Rek. 712-8899-001 a.n. Titipan Santri)"
               className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
             />
           </div>

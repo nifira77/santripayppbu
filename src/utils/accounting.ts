@@ -130,9 +130,9 @@ export function generateJournalForTransaction(trx: Transaction): JournalEntry {
   const entryNo = `JRN-${trx.transactionNo.replace('TRX-', '')}`;
 
   if (trx.type === 'DEPOSIT_WADIAH') {
-    const isBank = trx.method.includes('BANK');
+    const isBank = (trx.method || '').includes('BANK');
     const cashAccountCode = isBank ? '1-1010' : '1-1000';
-    const cashAccountName = isBank ? 'Kas Bank BSI (Titipan Wadiah)' : 'Kas Tunai Bendahara Pesantren';
+    const cashAccountName = isBank ? 'Kas Transfer Via Bank (Titipan Wadiah)' : 'Kas Tunai Bendahara Pesantren';
 
     return {
       id: `jrn-${trx.id}`,
@@ -237,7 +237,7 @@ export function calculateNeraca(
     if (t.type === 'DEPOSIT_WADIAH') {
       totalSetoranTitipan += t.amount;
       countSetoranTitipan++;
-      if (t.method.includes('BANK')) {
+      if ((t.method || '').includes('BANK')) {
         totalTitipanBank += t.amount;
       } else {
         totalTitipanTunai += t.amount;

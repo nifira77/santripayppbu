@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BookOpen, Printer, Search, CheckCircle2, Filter } from 'lucide-react';
 import { Transaction, PesantrenProfile } from '../types/finance';
 import { generateJournalForTransaction, formatRupiah, formatDateIndo } from '../utils/accounting';
+import { PrintControlBar } from './PrintControlBar';
 
 interface JurnalUmumViewProps {
   transactions: Transaction[];
@@ -69,13 +70,13 @@ export const JurnalUmumView: React.FC<JurnalUmumViewProps> = ({
             />
           </div>
 
-          <button
-            onClick={() => window.print()}
-            className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Cetak Jurnal</span>
-          </button>
+          {/* Print Controls (A4 / F4 & Landscape / Portrait) */}
+          <PrintControlBar
+            documentTitle="Buku Jurnal Umum Syariah"
+            defaultOrientation="landscape"
+            defaultPaperSize="F4"
+            buttonLabel="Cetak Jurnal"
+          />
         </div>
       </div>
 
