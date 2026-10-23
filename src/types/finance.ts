@@ -10,7 +10,7 @@ export type PaymentMethod = 'CASH' | 'BANK_TRANSFER_BSI' | 'BANK_TRANSFER_MANDIR
 export interface Santri {
   id: string;
   nisn: string;
-  accountNumber: string; // Nomor Rekening Wadiah Santri (e.g. 501.2024.081)
+  accountNumber: string; // Nomor Rekening Wadiah Santri (e.g. 501.2026.001)
   name: string;
   gender: 'L' | 'P';
   dormitory: string;     // e.g., 'Asrama Abu Bakar - Kamar 04'

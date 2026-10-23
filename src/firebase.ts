@@ -186,7 +186,10 @@ export function subscribeToProfile(
 export async function saveSantriToCloud(santri: Santri): Promise<void> {
   const path = `santri/${santri.id}`;
   try {
-    await setDoc(doc(db, 'santri', santri.id), santri, { merge: true });
+    const cleaned = Object.fromEntries(
+      Object.entries(santri).filter(([_, v]) => v !== undefined)
+    );
+    await setDoc(doc(db, 'santri', santri.id), cleaned, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -213,7 +216,10 @@ export async function updateSantriBalanceInCloud(santriId: string, newBalance: n
 export async function saveTransactionToCloud(transaction: Transaction): Promise<void> {
   const path = `transactions/${transaction.id}`;
   try {
-    await setDoc(doc(db, 'transactions', transaction.id), transaction);
+    const cleaned = Object.fromEntries(
+      Object.entries(transaction).filter(([_, v]) => v !== undefined)
+    );
+    await setDoc(doc(db, 'transactions', transaction.id), cleaned);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -222,7 +228,10 @@ export async function saveTransactionToCloud(transaction: Transaction): Promise<
 export async function saveProfileToCloud(profile: PesantrenProfile): Promise<void> {
   const path = 'settings/profile';
   try {
-    await setDoc(doc(db, 'settings', 'profile'), profile);
+    const cleaned = Object.fromEntries(
+      Object.entries(profile).filter(([_, v]) => v !== undefined)
+    );
+    await setDoc(doc(db, 'settings', 'profile'), cleaned);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }

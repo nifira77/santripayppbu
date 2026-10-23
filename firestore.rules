@@ -71,21 +71,21 @@ service cloud.firestore {
     function isValidPesantrenProfile(data) {
       return data.keys().hasAll(['name', 'formalName']) &&
         data.keys().hasOnly(['name', 'formalName', 'subtitle', 'tagline', 'address', 'district', 'phone', 'email', 'bankAccountBSI', 'headOfTreasury', 'treasuryNIP', 'mudir', 'defaultDailyLimit', 'logoUrl', 'motto']) &&
-        data.name is string && data.name.size() <= 150 &&
-        data.formalName is string && data.formalName.size() <= 200 &&
-        (!('subtitle' in data) || (data.subtitle is string && data.subtitle.size() <= 200)) &&
-        (!('tagline' in data) || (data.tagline is string && data.tagline.size() <= 200)) &&
-        (!('address' in data) || (data.address is string && data.address.size() <= 300)) &&
-        (!('district' in data) || (data.district is string && data.district.size() <= 150)) &&
-        (!('phone' in data) || (data.phone is string && data.phone.size() <= 50)) &&
-        (!('email' in data) || (data.email is string && data.email.size() <= 150)) &&
-        (!('bankAccountBSI' in data) || (data.bankAccountBSI is string && data.bankAccountBSI.size() <= 64)) &&
-        (!('headOfTreasury' in data) || (data.headOfTreasury is string && data.headOfTreasury.size() <= 150)) &&
-        (!('treasuryNIP' in data) || (data.treasuryNIP is string && data.treasuryNIP.size() <= 64)) &&
-        (!('mudir' in data) || (data.mudir is string && data.mudir.size() <= 150)) &&
+        data.name is string && data.name.size() <= 200 &&
+        data.formalName is string && data.formalName.size() <= 300 &&
+        (!('subtitle' in data) || (data.subtitle is string && data.subtitle.size() <= 300)) &&
+        (!('tagline' in data) || (data.tagline is string && data.tagline.size() <= 300)) &&
+        (!('address' in data) || (data.address is string && data.address.size() <= 500)) &&
+        (!('district' in data) || (data.district is string && data.district.size() <= 200)) &&
+        (!('phone' in data) || (data.phone is string && data.phone.size() <= 100)) &&
+        (!('email' in data) || (data.email is string && data.email.size() <= 200)) &&
+        (!('bankAccountBSI' in data) || (data.bankAccountBSI is string && data.bankAccountBSI.size() <= 200)) &&
+        (!('headOfTreasury' in data) || (data.headOfTreasury is string && data.headOfTreasury.size() <= 200)) &&
+        (!('treasuryNIP' in data) || (data.treasuryNIP is string && data.treasuryNIP.size() <= 100)) &&
+        (!('mudir' in data) || (data.mudir is string && data.mudir.size() <= 200)) &&
         (!('defaultDailyLimit' in data) || (data.defaultDailyLimit is number && data.defaultDailyLimit >= 0)) &&
         (!('logoUrl' in data) || (data.logoUrl is string && data.logoUrl.size() <= 5000000)) &&
-        (!('motto' in data) || (data.motto is string && data.motto.size() <= 300));
+        (!('motto' in data) || (data.motto is string && data.motto.size() <= 500));
     }
 
     // Santri collection rules (Public read for Parent Portal & Teller, strictly validated writes)

@@ -57,6 +57,21 @@ const STORAGE_KEY_TRX = 'santripay_transactions_v1';
 const STORAGE_KEY_PROFILE = 'santripay_profile_v1';
 const STORAGE_KEY_AUTH = 'santripay_auth_bendahara_v1';
 
+// Helpers to ensure account numbers are strictly 501.2026.xxx
+function normalizeSantriList(list: Santri[]): Santri[] {
+  return list.map((s) => ({
+    ...s,
+    accountNumber: s.accountNumber ? s.accountNumber.replace(/501\.2024\./g, '501.2026.') : s.accountNumber,
+  }));
+}
+
+function normalizeTransactionsList(list: Transaction[]): Transaction[] {
+  return list.map((t) => ({
+    ...t,
+    accountNumber: t.accountNumber ? t.accountNumber.replace(/501\.2024\./g, '501.2026.') : t.accountNumber,
+  }));
+}
+
 export default function App() {
   // Authentication & Cloud Realtime State
   const [currentUser, setCurrentUser] = useState<AuthUser | User | null>(() => {
@@ -76,21 +91,21 @@ export default function App() {
   const [santriList, setSantriList] = useState<Santri[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_SANTRI);
-      if (saved) return JSON.parse(saved);
+      if (saved) return normalizeSantriList(JSON.parse(saved));
     } catch (e) {
       console.error('Failed to load santri data from storage', e);
     }
-    return initialSantriList;
+    return normalizeSantriList(initialSantriList);
   });
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_TRX);
-      if (saved) return JSON.parse(saved);
+      if (saved) return normalizeTransactionsList(JSON.parse(saved));
     } catch (e) {
       console.error('Failed to load transactions data from storage', e);
     }
-    return initialTransactions;
+    return normalizeTransactionsList(initialTransactions);
   });
 
   const [pesantrenProfile, setPesantrenProfile] = useState<PesantrenProfile>(() => {
@@ -120,6 +135,7 @@ export default function App() {
   // Receipt popup state
   const [receiptTrx, setReceiptTrx] = useState<Transaction | null>(null);
   const [receiptSantri, setReceiptSantri] = useState<Santri | null>(null);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
   // Initialize Firebase connection & Auth listener
   useEffect(() => {
@@ -160,7 +176,7 @@ export default function App() {
     const unsubSantri = subscribeToSantri(
       (cloudSantri) => {
         if (cloudSantri && cloudSantri.length > 0) {
-          setSantriList(cloudSantri);
+          setSantriList(normalizeSantriList(cloudSantri));
         }
       },
       (err) => {
@@ -172,10 +188,11 @@ export default function App() {
       (cloudTrx) => {
         if (cloudTrx && cloudTrx.length > 0) {
           setTransactions((localTrx) => {
+            const normalizedCloud = normalizeTransactionsList(cloudTrx);
             // Preserve any pending local transactions that might not yet have reflected in cloud snapshot
-            const cloudIds = new Set(cloudTrx.map((t) => t.id));
+            const cloudIds = new Set(normalizedCloud.map((t) => t.id));
             const pendingLocal = localTrx.filter((t) => !cloudIds.has(t.id));
-            const merged = [...pendingLocal, ...cloudTrx];
+            const merged = [...pendingLocal, ...normalizedCloud];
             merged.sort((a, b) => {
               const dComp = b.date.localeCompare(a.date);
               if (dComp !== 0) return dComp;
@@ -422,7 +439,7 @@ export default function App() {
   ) => {
     const nextIndex = santriList.length + 1;
     const id = `snt-${String(nextIndex).padStart(3, '0')}`;
-    const accountNumber = `501.2024.${String(nextIndex).padStart(3, '0')}`;
+    const accountNumber = `501.2026.${String(nextIndex).padStart(3, '0')}`;
 
     const newSantri: Santri = {
       ...newSantriData,
@@ -435,9 +452,7 @@ export default function App() {
     setSantriList((prev) => [...prev, newSantri]);
 
     // Save to Cloud Firestore
-    if (currentUser) {
-      saveSantriToCloud(newSantri).catch((e) => console.error('Cloud add santri error:', e));
-    }
+    saveSantriToCloud(newSantri).catch((e) => console.error('Cloud add santri error:', e));
 
     if (initialDeposit > 0) {
       const depositTrx: Transaction = {
@@ -459,27 +474,20 @@ export default function App() {
         category: 'Setoran Titipan Wali',
       };
       setTransactions((prev) => [depositTrx, ...prev]);
-
-      if (currentUser) {
-        saveTransactionToCloud(depositTrx).catch((e) => console.error('Cloud deposit trx error:', e));
-      }
+      saveTransactionToCloud(depositTrx).catch((e) => console.error('Cloud deposit trx error:', e));
     }
   };
 
   // Update santri data handler (edit)
   const handleUpdateSantri = (updatedSantri: Santri) => {
     setSantriList((prev) => prev.map((s) => (s.id === updatedSantri.id ? updatedSantri : s)));
-    if (currentUser) {
-      saveSantriToCloud(updatedSantri).catch((e) => console.error('Cloud update santri error:', e));
-    }
+    saveSantriToCloud(updatedSantri).catch((e) => console.error('Cloud update santri error:', e));
   };
 
   // Delete santri handler
   const handleDeleteSantri = (santriId: string) => {
     setSantriList((prev) => prev.filter((s) => s.id !== santriId));
-    if (currentUser) {
-      deleteSantriFromCloud(santriId).catch((e) => console.error('Cloud delete santri error:', e));
-    }
+    deleteSantriFromCloud(santriId).catch((e) => console.error('Cloud delete santri error:', e));
   };
 
   // Toggle freeze / unfreeze account handler
@@ -489,9 +497,7 @@ export default function App() {
         if (s.id === santriId) {
           const nextStatus = freeze ? ('DIBEKUKAN' as const) : ('AKTIF' as const);
           const updatedSantri: Santri = { ...s, status: nextStatus };
-          if (currentUser) {
-            saveSantriToCloud(updatedSantri).catch((e) => console.error('Cloud freeze toggle error:', e));
-          }
+          saveSantriToCloud(updatedSantri).catch((e) => console.error('Cloud freeze toggle error:', e));
           return updatedSantri;
         }
         return s;
@@ -500,28 +506,41 @@ export default function App() {
     });
   };
 
-  // Update profile handler (with cloud sync)
-  const handleUpdateProfile = (newProfile: PesantrenProfile) => {
+  // Update profile handler (with persistent local storage and cloud sync)
+  const handleUpdateProfile = async (newProfile: PesantrenProfile) => {
     setPesantrenProfile(newProfile);
-    if (currentUser) {
-      saveProfileToCloud(newProfile).catch((e) => console.error('Cloud profile error:', e));
+    try {
+      localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(newProfile));
+    } catch (e) {
+      console.error('Storage profile error:', e);
+    }
+    try {
+      await saveProfileToCloud(newProfile);
+    } catch (e) {
+      console.error('Cloud profile error:', e);
     }
   };
 
-  // Reset to initial seeds
+  // Reset to initial seeds (triggers modal instead of window.confirm)
   const handleResetData = () => {
-    if (window.confirm('Apakah Anda yakin ingin mengatur ulang data ke simulasi awal? Semua transaksi baru akan dikembalikan ke data default.')) {
-      localStorage.removeItem(STORAGE_KEY_SANTRI);
-      localStorage.removeItem(STORAGE_KEY_TRX);
-      localStorage.removeItem(STORAGE_KEY_PROFILE);
-      setSantriList(initialSantriList);
-      setTransactions(initialTransactions);
-      setPesantrenProfile(defaultPesantrenProfile);
+    setIsResetConfirmOpen(true);
+  };
 
-      if (currentUser) {
-        seedInitialDataToCloud(initialSantriList, initialTransactions, defaultPesantrenProfile);
-      }
-    }
+  const handleExecuteReset = () => {
+    localStorage.removeItem(STORAGE_KEY_SANTRI);
+    localStorage.removeItem(STORAGE_KEY_TRX);
+    localStorage.removeItem(STORAGE_KEY_PROFILE);
+    setSantriList(normalizeSantriList(initialSantriList));
+    setTransactions(normalizeTransactionsList(initialTransactions));
+    setPesantrenProfile(defaultPesantrenProfile);
+
+    seedInitialDataToCloud(
+      normalizeSantriList(initialSantriList),
+      normalizeTransactionsList(initialTransactions),
+      defaultPesantrenProfile
+    ).catch((e) => console.error('Cloud seed reset error:', e));
+
+    setIsResetConfirmOpen(false);
   };
 
   // Render Landing Page (Portal Orang Tua Read-Only + Login Bendahara)
@@ -756,6 +775,39 @@ export default function App() {
             setReceiptSantri(null);
           }}
         />
+      )}
+
+      {/* Reset Confirmation Dialog (No window.confirm) */}
+      {isResetConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-4">
+              <RotateCcw className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900">
+              Atur Ulang Data Simulasi Pesantren?
+            </h3>
+            <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+              Tindakan ini akan mengembalikan data santri, transaksi wadiah, dan profil pesantren ke setelan awal default (dengan format nomor rekening <strong>501.2026.xxx</strong>).
+            </p>
+            <div className="mt-6 flex items-center justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setIsResetConfirmOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteReset}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 transition-colors cursor-pointer shadow-md"
+              >
+                Ya, Reset Data Sekarang
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
